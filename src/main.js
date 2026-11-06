@@ -1,3 +1,5 @@
+import { drawValoria } from "./maps/valoria.js";
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -10,7 +12,7 @@ const isTouchDevice =
   navigator.maxTouchPoints > 0 || "ontouchstart" in window;
 
 // ==========================================
-// CARGADOR DEL SPRITE DEL BK
+// SPRITE DEL BK
 // ==========================================
 
 let playerSprite = null;
@@ -25,23 +27,16 @@ import("./player/sprite.js")
 
     playerSprite = sprite;
 
-    console.log("Cargador del BK preparado.");
-
     sprite.image.addEventListener("load", () => {
-      console.log("Sprite del BK cargado correctamente.");
+      console.log("BK cargado correctamente.");
     });
 
     sprite.image.addEventListener("error", () => {
-      console.warn(
-        "Sprite BK no encontrado. Se utilizará el personaje provisional."
-      );
+      console.warn("No se pudo cargar el sprite del BK.");
     });
   })
   .catch((error) => {
-    console.warn(
-      "No se pudo iniciar el cargador. Se utilizará el personaje provisional.",
-      error
-    );
+    console.warn("Error al iniciar el cargador del BK:", error);
   });
 
 // ==========================================
@@ -89,6 +84,7 @@ function resizeCanvas() {
   canvas.height = Math.floor(window.innerHeight * dpr);
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = false;
 }
 
 function calculateMapPosition() {
@@ -118,25 +114,6 @@ function screenToWorld(x, y) {
 }
 
 // ==========================================
-// TERRENO
-// ==========================================
-
-function drawTile(x, y, color) {
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + 32, y + 16);
-  ctx.lineTo(x, y + 32);
-  ctx.lineTo(x - 32, y + 16);
-  ctx.closePath();
-
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(0,0,0,0.2)";
-  ctx.stroke();
-}
-
-// ==========================================
 // PERSONAJE PRINCIPAL
 // ==========================================
 
@@ -159,28 +136,19 @@ function drawPlayer(x, y) {
   ctx.ellipse(x, y + 5, 11, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Selección del cuadro de animación
   const frame = walking
     ? 1 + Math.floor(animationTime * 8) % 4
     : 0;
 
-  // Intentar dibujar el sprite real
+  // Intentar dibujar sprite real
   if (
     playerSprite &&
-    playerSprite.draw(
-      ctx,
-      player.facing,
-      frame,
-      x,
-      y,
-      1
-    )
+    playerSprite.draw(ctx, player.facing, frame, x, y, 1)
   ) {
     return;
   }
 
-  // Si el PNG no está disponible,
-  // utilizar el personaje provisional.
+  // Personaje provisional
   ctx.save();
   ctx.translate(x, y);
 
@@ -203,43 +171,35 @@ function drawPlayer(x, y) {
 // ==========================================
 
 function drawFront(legSwing, armSwing) {
-  // Piernas
   ctx.fillStyle = "#514638";
   ctx.fillRect(-5 - legSwing, -12, 5, 11);
   ctx.fillRect(1 + legSwing, -12, 5, 11);
 
-  // Botas
   ctx.fillStyle = "#493324";
   ctx.fillRect(-6 - legSwing, -3, 6, 4);
   ctx.fillRect(1 + legSwing, -3, 6, 4);
 
-  // Brazos
   ctx.fillStyle = "#806044";
   ctx.fillRect(-10, -24 + armSwing, 5, 14);
   ctx.fillRect(5, -24 - armSwing, 5, 14);
 
-  // Manos
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-10, -11 + armSwing, 5, 4);
   ctx.fillRect(5, -11 - armSwing, 5, 4);
 
-  // Camisa
   ctx.fillStyle = "#806044";
   ctx.fillRect(-7, -26, 14, 16);
 
   ctx.fillStyle = "#654a35";
   ctx.fillRect(-1, -24, 2, 10);
 
-  // Cara
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-6, -37, 12, 11);
 
-  // Cabello
   ctx.fillStyle = "#493021";
   ctx.fillRect(-6, -39, 12, 5);
   ctx.fillRect(-7, -36, 3, 5);
 
-  // Ojos
   ctx.fillStyle = "#30251e";
   ctx.fillRect(-3, -32, 2, 2);
   ctx.fillRect(2, -32, 2, 2);
@@ -252,39 +212,31 @@ function drawFront(legSwing, armSwing) {
 // ==========================================
 
 function drawBack(legSwing, armSwing) {
-  // Piernas
   ctx.fillStyle = "#514638";
   ctx.fillRect(-5 - legSwing, -12, 5, 11);
   ctx.fillRect(1 + legSwing, -12, 5, 11);
 
-  // Botas
   ctx.fillStyle = "#493324";
   ctx.fillRect(-6 - legSwing, -3, 6, 4);
   ctx.fillRect(1 + legSwing, -3, 6, 4);
 
-  // Brazos
   ctx.fillStyle = "#806044";
   ctx.fillRect(-10, -24 + armSwing, 5, 14);
   ctx.fillRect(5, -24 - armSwing, 5, 14);
 
-  // Manos
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-10, -11 + armSwing, 5, 4);
   ctx.fillRect(5, -11 - armSwing, 5, 4);
 
-  // Camisa
   ctx.fillStyle = "#806044";
   ctx.fillRect(-7, -26, 14, 16);
 
-  // Costura trasera
   ctx.fillStyle = "#654a35";
   ctx.fillRect(-1, -24, 2, 12);
 
-  // Cabeza
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-6, -37, 12, 11);
 
-  // Cabello
   ctx.fillStyle = "#493021";
   ctx.fillRect(-7, -39, 14, 8);
   ctx.fillRect(-6, -32, 12, 4);
@@ -297,45 +249,30 @@ function drawBack(legSwing, armSwing) {
 // ==========================================
 
 function drawSide(legSwing, armSwing) {
-  // Piernas
   ctx.fillStyle = "#514638";
   ctx.fillRect(-3 - legSwing, -12, 5, 11);
   ctx.fillRect(2 + legSwing, -12, 5, 11);
 
-  // Botas
   ctx.fillStyle = "#493324";
   ctx.fillRect(-3 - legSwing, -3, 7, 4);
   ctx.fillRect(2 + legSwing, -3, 6, 4);
 
-  // Brazo trasero
   ctx.fillStyle = "#654a35";
   ctx.fillRect(-5, -23 - armSwing, 5, 13);
 
-  // Cuerpo
   ctx.fillStyle = "#806044";
   ctx.fillRect(-4, -26, 11, 16);
-
-  // Brazo delantero
-  ctx.fillStyle = "#806044";
   ctx.fillRect(3, -23 + armSwing, 5, 13);
 
-  // Mano
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(4, -11 + armSwing, 5, 4);
-
-  // Cabeza
-  ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-2, -37, 11, 11);
-
-  // Nariz
   ctx.fillRect(8, -33, 3, 3);
 
-  // Cabello
   ctx.fillStyle = "#493021";
   ctx.fillRect(-3, -39, 12, 5);
   ctx.fillRect(-3, -35, 4, 7);
 
-  // Ojo
   ctx.fillStyle = "#30251e";
   ctx.fillRect(6, -33, 2, 2);
 
@@ -385,6 +322,7 @@ function drawDestination() {
 
   ctx.beginPath();
   ctx.ellipse(pos.x, pos.y + 3, 10, 5, 0, 0, Math.PI * 2);
+
   ctx.strokeStyle = "#f2d47b";
   ctx.lineWidth = 2;
   ctx.stroke();
@@ -404,8 +342,10 @@ function drawJoystick() {
 
   ctx.beginPath();
   ctx.arc(baseX, baseY, joystick.radius, 0, Math.PI * 2);
+
   ctx.fillStyle = "#18231e";
   ctx.fill();
+
   ctx.lineWidth = 3;
   ctx.strokeStyle = "#b6b6a0";
   ctx.stroke();
@@ -418,6 +358,7 @@ function drawJoystick() {
     0,
     Math.PI * 2
   );
+
   ctx.fillStyle = "#c6b98c";
   ctx.fill();
 
@@ -466,6 +407,7 @@ function getMovement() {
     if (distance < 0.06) {
       player.x = player.targetX;
       player.y = player.targetY;
+
       player.targetX = null;
       player.targetY = null;
 
@@ -508,7 +450,7 @@ function update(deltaTime) {
 }
 
 // ==========================================
-// DIBUJAR JUEGO
+// DIBUJAR VALORIA
 // ==========================================
 
 function drawGame() {
@@ -518,26 +460,21 @@ function drawGame() {
   calculateMapPosition();
 
   ctx.clearRect(0, 0, width, height);
+
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  // Terreno provisional
-  for (let y = 0; y < MAP_HEIGHT; y++) {
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      const pos = worldToScreen(x, y);
-      const color = (x + y) % 2 === 0
-        ? "#527747"
-        : "#496d40";
+  // Nuevo mapa de Valoria
+  drawValoria(ctx, worldToScreen);
 
-      drawTile(pos.x, pos.y, color);
-    }
-  }
-
+  // Destino y personaje
   drawDestination();
 
   const playerPos = worldToScreen(player.x, player.y);
 
   drawPlayer(playerPos.x, playerPos.y);
+
+  // Controles
   drawJoystick();
 }
 
@@ -567,7 +504,6 @@ canvas.addEventListener("pointerdown", (event) => {
     return;
   }
 
-  // Controles táctiles
   const baseX = 85;
   const baseY = window.innerHeight - 95;
 
