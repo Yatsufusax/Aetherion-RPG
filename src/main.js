@@ -1,4 +1,3 @@
-
 import { drawValoria } from "./maps/valoria.js";
 
 const canvas = document.getElementById("gameCanvas");
