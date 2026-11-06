@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -13,7 +14,6 @@ function resizeCanvas() {
   canvas.height = Math.floor(window.innerHeight * dpr);
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
   drawGame();
 }
 
@@ -28,30 +28,25 @@ function drawTile(x, y, color) {
   ctx.fillStyle = color;
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+  ctx.strokeStyle = "rgba(0,0,0,0.2)";
   ctx.stroke();
 }
 
 function drawPlayer(x, y) {
-  // Sombra
-  ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
   ctx.ellipse(x, y + 5, 11, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Cuerpo
   ctx.fillStyle = "#315b9a";
   ctx.fillRect(x - 7, y - 23, 14, 18);
 
-  // Cabeza
   ctx.fillStyle = "#e5b98b";
   ctx.fillRect(x - 6, y - 34, 12, 11);
 
-  // Cabello
   ctx.fillStyle = "#493021";
   ctx.fillRect(x - 6, y - 36, 12, 5);
 
-  // Armadura
   ctx.fillStyle = "#aeb8c4";
   ctx.fillRect(x - 7, y - 23, 14, 4);
 }
@@ -64,11 +59,13 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  const mapPixelWidth = (MAP_WIDTH + MAP_HEIGHT) * TILE_WIDTH / 2;
-  const offsetX = (width - mapPixelWidth) / 2 + TILE_WIDTH / 2;
-  const offsetY = height * 0.18;
+  const minX = -(MAP_HEIGHT - 1) * TILE_WIDTH / 2;
+  const maxX = (MAP_WIDTH - 1) * TILE_WIDTH / 2;
+  const maxY = (MAP_WIDTH + MAP_HEIGHT - 2) * TILE_HEIGHT / 2;
 
-  // Terreno isométrico
+  const offsetX = (width - (maxX - minX)) / 2 - minX;
+  const offsetY = Math.max(30, (height - maxY) / 2);
+
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       const screenX = offsetX + (x - y) * TILE_WIDTH / 2;
@@ -82,7 +79,6 @@ function drawGame() {
     }
   }
 
-  // Guerrero provisional
   const playerX = offsetX + (6 - 5) * TILE_WIDTH / 2;
   const playerY = offsetY + (6 + 5) * TILE_HEIGHT / 2;
 
@@ -90,5 +86,4 @@ function drawGame() {
 }
 
 window.addEventListener("resize", resizeCanvas);
-
 resizeCanvas();
