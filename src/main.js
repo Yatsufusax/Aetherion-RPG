@@ -320,8 +320,19 @@ function drawDestination() {
 
   const pos = worldToScreen(player.targetX, player.targetY);
 
+  // Centro real del rombo del suelo
+  const groundY = pos.y + TILE_HEIGHT / 2;
+
   ctx.beginPath();
-  ctx.ellipse(pos.x, pos.y + 3, 10, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse( 
+    pos.x,
+    groundY,
+    10,
+    5,
+    0,
+    0,
+    Math.PI * 2
+  );
 
   ctx.strokeStyle = "#f2d47b";
   ctx.lineWidth = 2;
@@ -464,15 +475,20 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  // Nuevo mapa de Valoria
+  // Mapa de Valoria
   drawValoria(ctx, worldToScreen);
 
-  // Destino y personaje
+  // Destino
   drawDestination();
 
+  // Posición del personaje
   const playerPos = worldToScreen(player.x, player.y);
 
-  drawPlayer(playerPos.x, playerPos.y);
+  // CORRECCIÓN:
+  // El punto de apoyo debe estar en el centro del rombo.
+  const groundY = playerPos.y + TILE_HEIGHT / 2;
+
+  drawPlayer(playerPos.x, groundY);
 
   // Controles
   drawJoystick();
