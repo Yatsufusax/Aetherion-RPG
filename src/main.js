@@ -56,6 +56,74 @@ const player = {
   }
 };
 
+const PLAYER_RADIUS_X = 0.16;
+const PLAYER_RADIUS_Y = 0.16;
+
+// ==========================================
+// COLISIONES DE VALORIA
+// ==========================================
+
+// Los radios representan el espacio físico ocupado.
+// No usamos toda la copa de los árboles como obstáculo.
+
+const obstacles = [
+  // Casas
+  { x: 2, y: 2, rx: 0.78, ry: 0.62 },
+  { x: 10, y: 2, rx: 0.78, ry: 0.62 },
+  { x: 2, y: 8, rx: 0.78, ry: 0.62 },
+  { x: 10, y: 8, rx: 0.78, ry: 0.62 },
+
+  // Troncos de árboles
+  { x: 0, y: 3, rx: 0.23, ry: 0.23 },
+  { x: 12, y: 3, rx: 0.23, ry: 0.23 },
+  { x: 0, y: 8, rx: 0.23, ry: 0.23 },
+  { x: 12, y: 8, rx: 0.23, ry: 0.23 },
+  { x: 3, y: 1, rx: 0.23, ry: 0.23 },
+  { x: 9, y: 1, rx: 0.23, ry: 0.23 },
+
+  // Fuente
+  { x: 6, y: 4, rx: 0.48, ry: 0.38 },
+
+  // NPC
+  { x: 4.5, y: 5.8, rx: 0.22, ry: 0.22 },
+  { x: 8, y: 5.5, rx: 0.22, ry: 0.22 }
+];
+
+// Comprueba si el jugador puede ocupar una posición.
+
+function canMoveTo(x, y) {
+  if (
+    x < PLAYER_RADIUS_X ||
+    y < PLAYER_RADIUS_Y ||
+    x > MAP_WIDTH - 1 - PLAYER_RADIUS_X ||
+    y > MAP_HEIGHT - 1 - PLAYER_RADIUS_Y
+  ) {
+    return false;
+  }
+
+  for (const obstacle of obstacles) {
+    const dx = x - obstacle.x;
+    const dy = y - obstacle.y;
+
+    const rx = obstacle.rx + PLAYER_RADIUS_X;
+    const ry = obstacle.ry + PLAYER_RADIUS_Y;
+
+    const distance =
+      (dx * dx) / (rx * rx) +
+      (dy * dy) / (ry * ry);
+
+    if (distance < 1) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// ==========================================
+// JOYSTICK Y ESTADO
+// ==========================================
+
 const joystick = {
   active: false,
   pointerId: null,
@@ -126,7 +194,6 @@ function drawPlayer(x, groundY) {
 
   const visualY = groundY - bob;
 
-  // Sombra
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
   ctx.ellipse(x, groundY + 2, 11, 4, 0, 0, Math.PI * 2);
@@ -136,7 +203,6 @@ function drawPlayer(x, groundY) {
     ? 1 + Math.floor(animationTime * 8) % 4
     : 0;
 
-  // Sprite real
   if (
     playerSprite &&
     playerSprite.draw(
@@ -151,7 +217,6 @@ function drawPlayer(x, groundY) {
     return;
   }
 
-  // Personaje provisional
   ctx.save();
   ctx.translate(x, visualY);
 
@@ -435,6 +500,10 @@ function getMovement() {
   return { x: 0, y: 0 };
 }
 
+// ==========================================
+// ACTUALIZAR MOVIMIENTO Y COLISIONES
+// ==========================================
+
 function update(deltaTime) {
   const movement = getMovement();
   const length = Math.hypot(movement.x, movement.y);
@@ -453,12 +522,50 @@ function update(deltaTime) {
   }
 
   const factor = Math.min(1, length);
+  const stepX = movement.x * factor * player.speed * deltaTime;
+  const stepY = movement.y * factor * player.speed * deltaTime;
 
-  player.x += movement.x * factor * player.speed * deltaTime;
-  player.y += movement.y * factor * player.speed * deltaTime;
+  // Primero intentamos mover en X.
+  // Si hay obstáculo, bloqueamos solo ese eje.
 
-  player.x = Math.max(0, Math.min(MAP_WIDTH - 1, player.x));
-  player.y = Math.max(0, Math.min(MAP_HEIGHT - 1, player.y));
+  const nextX = player.x + stepX;
+
+  if (canMoveTo(nextX, player.y)) {
+    player.x = nextX;
+  }
+
+  // Después intentamos mover en Y.
+  // Esto permite deslizarse alrededor de obstáculos.
+
+  const nextY = player.y + stepY;
+
+  if (canMoveTo(player.x, nextY)) {
+    player.y = nextY;
+  }
+
+  // Si se usa clic para caminar y no puede avanzar,
+  // cancelamos el destino para evitar caminar eternamente.
+
+  if (!joystick.active && player.targetX !== null) {
+    const remaining = Math.hypot(
+      player.targetX - player.x,
+      player.targetY - player.y
+    );
+
+    if (remaining > 0.06) {
+      const blockedX = Math.abs(stepX) > 0.0001 &&
+        Math.abs(player.x - (nextX)) < 0.0001 &&
+        !canMoveTo(nextX, player.y);
+
+      const blockedY = Math.abs(stepY) > 0.0001 &&
+        !canMoveTo(player.x, nextY);
+
+      if (blockedX && blockedY) {
+        player.targetX = null;
+        player.targetY = null;
+      }
+    }
+  }
 }
 
 // ==========================================
@@ -478,12 +585,9 @@ function drawGame() {
 
   drawDestination();
 
-  // Posición real del BK
   const playerPos = worldToScreen(player.x, player.y);
   const groundY = playerPos.y + TILE_HEIGHT / 2;
 
-  // El mapa decide cuándo dibujar el BK
-  // según la profundidad de cada objeto.
   drawValoria(ctx, worldToScreen, {
     x: player.x,
     y: player.y,
@@ -494,7 +598,7 @@ function drawGame() {
 }
 
 // ==========================================
-// CONTROLES
+// CONTROLES DE PC Y ANDROID
 // ==========================================
 
 canvas.addEventListener("pointerdown", (event) => {
