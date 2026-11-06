@@ -27,10 +27,6 @@ import("./player/sprite.js")
 
     playerSprite = sprite;
 
-    sprite.image.addEventListener("load", () => {
-      console.log("BK cargado correctamente.");
-    });
-
     sprite.image.addEventListener("error", () => {
       console.warn("No se pudo cargar el sprite del BK.");
     });
@@ -117,7 +113,7 @@ function screenToWorld(x, y) {
 // PERSONAJE PRINCIPAL
 // ==========================================
 
-function drawPlayer(x, y) {
+function drawPlayer(x, groundY) {
   const walking = player.moving;
   const cycle = animationTime * 10;
 
@@ -128,29 +124,37 @@ function drawPlayer(x, y) {
     ? Math.abs(Math.sin(cycle)) * 1.2
     : Math.sin(animationTime * 2) * 0.5;
 
-  y -= bob;
+  // Movimiento visual del cuerpo
+  const visualY = groundY - bob;
 
-  // Sombra
+  // Sombra directamente debajo de los pies
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
-  ctx.ellipse(x, y + 5, 11, 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, groundY + 2, 11, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   const frame = walking
     ? 1 + Math.floor(animationTime * 8) % 4
     : 0;
 
-  // Intentar dibujar sprite real
+  // Sprite real con detección automática de los pies
   if (
     playerSprite &&
-    playerSprite.draw(ctx, player.facing, frame, x, y, 1)
+    playerSprite.draw(
+      ctx,
+      player.facing,
+      frame,
+      x,
+      visualY,
+      1
+    )
   ) {
     return;
   }
 
   // Personaje provisional
   ctx.save();
-  ctx.translate(x, y);
+  ctx.translate(x, visualY);
 
   if (player.facing === "down") {
     drawFront(legSwing, armSwing);
@@ -320,11 +324,10 @@ function drawDestination() {
 
   const pos = worldToScreen(player.targetX, player.targetY);
 
-  // Centro real del rombo del suelo
   const groundY = pos.y + TILE_HEIGHT / 2;
 
   ctx.beginPath();
-  ctx.ellipse( 
+  ctx.ellipse(
     pos.x,
     groundY,
     10,
@@ -475,22 +478,17 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  // Mapa de Valoria
   drawValoria(ctx, worldToScreen);
 
-  // Destino
   drawDestination();
 
-  // Posición del personaje
   const playerPos = worldToScreen(player.x, player.y);
 
-  // CORRECCIÓN:
-  // El punto de apoyo debe estar en el centro del rombo.
+  // Centro del rombo: punto de apoyo del personaje
   const groundY = playerPos.y + TILE_HEIGHT / 2;
 
   drawPlayer(playerPos.x, groundY);
 
-  // Controles
   drawJoystick();
 }
 
