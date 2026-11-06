@@ -120,82 +120,6 @@ function canMoveTo(x, y) {
 }
 
 // ==========================================
-// VISUALIZACIÓN TEMPORAL DE COLISIONES
-// ==========================================
-
-function drawWorldEllipse(centerX, centerY, radiusX, radiusY, color) {
-  ctx.beginPath();
-
-  const segments = 40;
-
-  for (let i = 0; i <= segments; i++) {
-    const angle = (i / segments) * Math.PI * 2;
-
-    const worldX = centerX + Math.cos(angle) * radiusX;
-    const worldY = centerY + Math.sin(angle) * radiusY;
-
-    const screen = worldToScreen(worldX, worldY);
-
-    if (i === 0) {
-      ctx.moveTo(screen.x, screen.y);
-    } else {
-      ctx.lineTo(screen.x, screen.y);
-    }
-  }
-
-  ctx.closePath();
-
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  ctx.strokeStyle = color.replace("0.15", "0.95");
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
-
-function drawCollisionDebug() {
-  // Zonas de los obstáculos
-  for (const obstacle of obstacles) {
-    drawWorldEllipse(
-      obstacle.x,
-      obstacle.y,
-      obstacle.rx + PLAYER_RADIUS_X,
-      obstacle.ry + PLAYER_RADIUS_Y,
-      "rgba(255, 55, 55, 0.15)"
-    );
-  }
-
-  // Zona de colisión del BK
-  drawWorldEllipse(
-    player.x,
-    player.y,
-    PLAYER_RADIUS_X,
-    PLAYER_RADIUS_Y,
-    "rgba(50, 255, 100, 0.15)"
-  );
-
-  // Centro del BK
-  const playerScreen = worldToScreen(player.x, player.y);
-
-  ctx.beginPath();
-  ctx.arc(playerScreen.x, playerScreen.y, 4, 0, Math.PI * 2);
-  ctx.fillStyle = "#39ff65";
-  ctx.fill();
-
-  // Indicador de diagnóstico
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 12px Arial";
-  ctx.textAlign = "left";
-  ctx.fillText("MODO COLISIONES", 12, 22);
-
-  ctx.fillStyle = "#ff5555";
-  ctx.fillText("ROJO: obstáculos", 12, 40);
-
-  ctx.fillStyle = "#39ff65";
-  ctx.fillText("VERDE: jugador", 12, 58);
-}
-
-// ==========================================
 // JOYSTICK Y ESTADO
 // ==========================================
 
@@ -576,7 +500,67 @@ function getMovement() {
 }
 
 // ==========================================
-// ACTUALIZAR MOVIMIENTO Y COLISIONES
+// MOVIMIENTO CON SUBPASOS Y DESLIZAMIENTO
+// ==========================================
+
+function moveWithCollisions(stepX, stepY) {
+  const maxStep = 0.025;
+
+  const steps = Math.max(
+    1,
+    Math.ceil(
+      Math.max(Math.abs(stepX), Math.abs(stepY)) / maxStep
+    )
+  );
+
+  const incrementX = stepX / steps;
+  const incrementY = stepY / steps;
+
+  for (let i = 0; i < steps; i++) {
+    const nextX = player.x + incrementX;
+    const nextY = player.y + incrementY;
+
+    // Primero intentamos el movimiento completo.
+    if (canMoveTo(nextX, nextY)) {
+      player.x = nextX;
+      player.y = nextY;
+      continue;
+    }
+
+    // Si está bloqueado, intentamos avanzar en X.
+    const canMoveX = canMoveTo(nextX, player.y);
+
+    // Y también comprobamos Y por separado.
+    const canMoveY = canMoveTo(player.x, nextY);
+
+    if (canMoveX && canMoveY) {
+      // Si ambos ejes están libres, avanzamos en ambos.
+      player.x = nextX;
+      player.y = nextY;
+    } else if (canMoveX) {
+      player.x = nextX;
+    } else if (canMoveY) {
+      player.y = nextY;
+    } else {
+      // Intentamos primero Y y después X.
+      // Esto ayuda a rodear esquinas.
+      const alternativeY = player.y + incrementY;
+
+      if (canMoveTo(player.x, alternativeY)) {
+        player.y = alternativeY;
+      }
+
+      const alternativeX = player.x + incrementX;
+
+      if (canMoveTo(alternativeX, player.y)) {
+        player.x = alternativeX;
+      }
+    }
+  }
+}
+
+// ==========================================
+// ACTUALIZAR MOVIMIENTO
 // ==========================================
 
 function update(deltaTime) {
@@ -597,40 +581,34 @@ function update(deltaTime) {
   }
 
   const factor = Math.min(1, length);
-  const stepX = movement.x * factor * player.speed * deltaTime;
-  const stepY = movement.y * factor * player.speed * deltaTime;
 
-  const nextX = player.x + stepX;
+  const stepX =
+    movement.x * factor * player.speed * deltaTime;
 
-  if (canMoveTo(nextX, player.y)) {
-    player.x = nextX;
-  }
+  const stepY =
+    movement.y * factor * player.speed * deltaTime;
 
-  const nextY = player.y + stepY;
+  const previousX = player.x;
+  const previousY = player.y;
 
-  if (canMoveTo(player.x, nextY)) {
-    player.y = nextY;
-  }
+  moveWithCollisions(stepX, stepY);
 
+  // Si el destino está completamente bloqueado,
+  // cancelamos el movimiento automático.
   if (!joystick.active && player.targetX !== null) {
+    const moved = Math.hypot(
+      player.x - previousX,
+      player.y - previousY
+    );
+
     const remaining = Math.hypot(
       player.targetX - player.x,
       player.targetY - player.y
     );
 
-    if (remaining > 0.06) {
-      const blockedX =
-        Math.abs(stepX) > 0.0001 &&
-        !canMoveTo(nextX, player.y);
-
-      const blockedY =
-        Math.abs(stepY) > 0.0001 &&
-        !canMoveTo(player.x, nextY);
-
-      if (blockedX && blockedY) {
-        player.targetX = null;
-        player.targetY = null;
-      }
+    if (moved < 0.0001 && remaining > 0.06) {
+      player.targetX = null;
+      player.targetY = null;
     }
   }
 }
@@ -660,9 +638,6 @@ function drawGame() {
     y: player.y,
     draw: () => drawPlayer(playerPos.x, groundY)
   });
-
-  // Dibujamos las colisiones encima del escenario.
-  drawCollisionDebug();
 
   drawJoystick();
 }
