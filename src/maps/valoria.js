@@ -1,9 +1,9 @@
-export function drawValoria(ctx, worldToScreen) {
+export function drawValoria(ctx, worldToScreen, playerRender = null) {
   const MAP_WIDTH = 13;
   const MAP_HEIGHT = 11;
 
   // =====================================
-  // TERRENO Y CAMINOS
+  // TERRENO
   // =====================================
 
   function drawTile(x, y, color) {
@@ -26,11 +26,8 @@ export function drawValoria(ctx, worldToScreen) {
     const centralPlaza =
       x >= 4 && x <= 8 && y >= 3 && y <= 7;
 
-    const verticalRoad =
-      x >= 5 && x <= 7;
-
-    const horizontalRoad =
-      y >= 4 && y <= 6;
+    const verticalRoad = x >= 5 && x <= 7;
+    const horizontalRoad = y >= 4 && y <= 6;
 
     return centralPlaza || verticalRoad || horizontalRoad;
   }
@@ -39,24 +36,16 @@ export function drawValoria(ctx, worldToScreen) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       const pos = worldToScreen(x, y);
 
-      let color;
-
-      if (isStonePath(x, y)) {
-        color = (x + y) % 2 === 0
-          ? "#99917b"
-          : "#857e6b";
-      } else {
-        color = (x + y) % 2 === 0
-          ? "#527747"
-          : "#496d40";
-      }
+      const color = isStonePath(x, y)
+        ? ((x + y) % 2 === 0 ? "#99917b" : "#857e6b")
+        : ((x + y) % 2 === 0 ? "#527747" : "#496d40");
 
       drawTile(pos.x, pos.y, color);
     }
   }
 
   // =====================================
-  // DECORACIÓN
+  // UTILIDADES DE DIBUJO
   // =====================================
 
   function polygon(points, color) {
@@ -73,7 +62,7 @@ export function drawValoria(ctx, worldToScreen) {
   }
 
   // =====================================
-  // CASAS MEDIEVALES
+  // CASAS
   // =====================================
 
   function drawHouse(x, y, variant = 0) {
@@ -82,45 +71,27 @@ export function drawValoria(ctx, worldToScreen) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    // Sombra
     ctx.fillStyle = "rgba(0,0,0,0.22)";
     ctx.beginPath();
     ctx.ellipse(0, 2, 43, 17, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pared lateral
     polygon([
-      [0, -43],
-      [34, -61],
-      [34, -17],
-      [0, 2]
+      [0, -43], [34, -61], [34, -17], [0, 2]
     ], "#8b7558");
 
-    // Pared frontal
     polygon([
-      [-34, -61],
-      [0, -43],
-      [0, 2],
-      [-34, -17]
+      [-34, -61], [0, -43], [0, 2], [-34, -17]
     ], "#b39a72");
 
-    // Techo lateral
     polygon([
-      [0, -87],
-      [39, -67],
-      [34, -57],
-      [0, -76]
+      [0, -87], [39, -67], [34, -57], [0, -76]
     ], "#713b2c");
 
-    // Techo frontal
     polygon([
-      [-39, -67],
-      [0, -87],
-      [0, -76],
-      [-34, -57]
+      [-39, -67], [0, -87], [0, -76], [-34, -57]
     ], "#a34e36");
 
-    // Borde del techo
     ctx.strokeStyle = "#542d25";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -129,28 +100,24 @@ export function drawValoria(ctx, worldToScreen) {
     ctx.lineTo(39, -67);
     ctx.stroke();
 
-    // Puerta
     ctx.fillStyle = "#513626";
     ctx.fillRect(-24, -29, 13, 29);
 
     ctx.fillStyle = "#c49a52";
     ctx.fillRect(-14, -16, 2, 2);
 
-    // Ventana frontal
     ctx.fillStyle = "#4b3930";
     ctx.fillRect(-5, -36, 12, 12);
 
     ctx.fillStyle = "#e4bd72";
     ctx.fillRect(-3, -34, 8, 8);
 
-    // Ventana lateral
     ctx.fillStyle = "#49382d";
     ctx.fillRect(13, -46, 10, 10);
 
     ctx.fillStyle = "#d7ad65";
     ctx.fillRect(15, -44, 6, 6);
 
-    // Variación de color
     if (variant === 1) {
       ctx.fillStyle = "#8c4234";
       ctx.fillRect(-24, -55, 9, 4);
@@ -169,17 +136,14 @@ export function drawValoria(ctx, worldToScreen) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    // Sombra
     ctx.fillStyle = "rgba(0,0,0,0.2)";
     ctx.beginPath();
     ctx.ellipse(0, 1, 20, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Tronco
     ctx.fillStyle = "#62432d";
     ctx.fillRect(-5, -35, 10, 35);
 
-    // Follaje
     ctx.fillStyle = "#294d32";
     ctx.fillRect(-20, -60, 40, 27);
 
@@ -193,7 +157,7 @@ export function drawValoria(ctx, worldToScreen) {
   }
 
   // =====================================
-  // FUENTE DE LA PLAZA
+  // FUENTE
   // =====================================
 
   function drawFountain(x, y) {
@@ -202,31 +166,18 @@ export function drawValoria(ctx, worldToScreen) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    // Base
     polygon([
-      [-25, -9],
-      [0, -21],
-      [25, -9],
-      [0, 3]
+      [-25, -9], [0, -21], [25, -9], [0, 3]
     ], "#716c60");
 
-    // Borde
     polygon([
-      [-25, -15],
-      [0, -27],
-      [25, -15],
-      [0, -3]
+      [-25, -15], [0, -27], [25, -15], [0, -3]
     ], "#b4aa91");
 
-    // Agua
     polygon([
-      [-17, -15],
-      [0, -23],
-      [17, -15],
-      [0, -7]
+      [-17, -15], [0, -23], [17, -15], [0, -7]
     ], "#4b9aab");
 
-    // Centro
     ctx.fillStyle = "#d0c4a2";
     ctx.fillRect(-3, -36, 6, 17);
 
@@ -237,7 +188,7 @@ export function drawValoria(ctx, worldToScreen) {
   }
 
   // =====================================
-  // NPC DECORATIVOS
+  // NPC
   // =====================================
 
   function drawNPC(x, y, color) {
@@ -246,26 +197,21 @@ export function drawValoria(ctx, worldToScreen) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    // Sombra
     ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.beginPath();
     ctx.ellipse(0, 2, 9, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Piernas
     ctx.fillStyle = "#403b35";
     ctx.fillRect(-5, -12, 4, 11);
     ctx.fillRect(1, -12, 4, 11);
 
-    // Cuerpo
     ctx.fillStyle = color;
     ctx.fillRect(-7, -28, 14, 16);
 
-    // Cabeza
     ctx.fillStyle = "#d5a47d";
     ctx.fillRect(-5, -39, 10, 11);
 
-    // Cabello
     ctx.fillStyle = "#39291f";
     ctx.fillRect(-6, -41, 12, 5);
 
@@ -273,7 +219,7 @@ export function drawValoria(ctx, worldToScreen) {
   }
 
   // =====================================
-  // SALIDAS DE VALORIA
+  // SALIDAS
   // =====================================
 
   function drawExit(x, y, label) {
@@ -298,40 +244,61 @@ export function drawValoria(ctx, worldToScreen) {
   }
 
   // =====================================
-  // COLOCACIÓN DE OBJETOS
+  // OBJETOS CON PROFUNDIDAD
   // =====================================
 
-  // Casas alrededor de la plaza
-  drawHouse(2, 2, 0);
-  drawHouse(10, 2, 1);
-  drawHouse(2, 8, 1);
-  drawHouse(10, 8, 0);
+  const objects = [];
 
-  // Árboles
-  drawTree(0, 3);
-  drawTree(12, 3);
-  drawTree(0, 8);
-  drawTree(12, 8);
-  drawTree(3, 1);
-  drawTree(9, 1);
+  function addObject(x, y, draw) {
+    objects.push({
+      depth: x + y,
+      draw
+    });
+  }
 
-  // Fuente central
-  drawFountain(6, 4);
+  addObject(2, 2, () => drawHouse(2, 2, 0));
+  addObject(10, 2, () => drawHouse(10, 2, 1));
+  addObject(2, 8, () => drawHouse(2, 8, 1));
+  addObject(10, 8, () => drawHouse(10, 8, 0));
 
-  // Habitantes
-  drawNPC(4.5, 5.8, "#796044");
-  drawNPC(8, 5.5, "#536b85");
+  addObject(0, 3, () => drawTree(0, 3));
+  addObject(12, 3, () => drawTree(12, 3));
+  addObject(0, 8, () => drawTree(0, 8));
+  addObject(12, 8, () => drawTree(12, 8));
+  addObject(3, 1, () => drawTree(3, 1));
+  addObject(9, 1, () => drawTree(9, 1));
 
-  // Salidas
-  drawExit(6, 0, "NORTE");
-  drawExit(0, 5, "OESTE");
-  drawExit(12, 5, "ESTE");
+  addObject(6, 4, () => drawFountain(6, 4));
 
-  // Letrero de la ciudad
+  addObject(4.5, 5.8, () => drawNPC(4.5, 5.8, "#796044"));
+  addObject(8, 5.5, () => drawNPC(8, 5.5, "#536b85"));
+
+  addObject(6, 0, () => drawExit(6, 0, "NORTE"));
+  addObject(0, 5, () => drawExit(0, 5, "OESTE"));
+  addObject(12, 5, () => drawExit(12, 5, "ESTE"));
+
+  // Letrero fijo
   const sign = worldToScreen(6, 1);
 
   ctx.fillStyle = "#e1cf9a";
   ctx.font = "bold 16px Georgia";
   ctx.textAlign = "center";
   ctx.fillText("VALORIA", sign.x, sign.y - 48);
+
+  // =====================================
+  // ORDENAR OBJETOS Y JUGADOR
+  // =====================================
+
+  if (playerRender) {
+    objects.push({
+      depth: playerRender.x + playerRender.y,
+      draw: playerRender.draw
+    });
+  }
+
+  objects.sort((a, b) => a.depth - b.depth);
+
+  for (const object of objects) {
+    object.draw();
+  }
 }
