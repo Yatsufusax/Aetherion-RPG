@@ -14,7 +14,9 @@ const player = {
   y: 5,
   speed: 3.5,
   targetX: null,
-  targetY: null
+  targetY: null,
+  facing: "down",
+  moving: false
 };
 
 const joystick = {
@@ -28,6 +30,7 @@ const joystick = {
 let offsetX = 0;
 let offsetY = 0;
 let lastTime = 0;
+let animationTime = 0;
 
 function resizeCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -80,22 +83,79 @@ function drawTile(x, y, color) {
 }
 
 function drawPlayer(x, y) {
+  const walking = player.moving;
+  const cycle = animationTime * 10;
+
+  const legSwing = walking ? Math.sin(cycle) * 3 : 0;
+  const armSwing = walking ? Math.sin(cycle + Math.PI) * 2 : 0;
+
+  const idle = walking ? 0 : Math.sin(animationTime * 2) * 0.7;
+
+  const bob = walking
+    ? Math.abs(Math.sin(cycle)) * 1.5
+    : idle;
+
+  y -= bob;
+
+  // Sombra
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
-  ctx.ellipse(x, y + 5, 11, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + 5, 12, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Piernas
+  ctx.fillStyle = "#343b48";
+  ctx.fillRect(x - 6 - legSwing, y - 9, 5, 10);
+  ctx.fillRect(x + 1 + legSwing, y - 9, 5, 10);
+
+  // Botas
+  ctx.fillStyle = "#57412e";
+  ctx.fillRect(x - 7 - legSwing, y - 2, 6, 4);
+  ctx.fillRect(x + 1 + legSwing, y - 2, 6, 4);
+
+  // Brazos
   ctx.fillStyle = "#315b9a";
-  ctx.fillRect(x - 7, y - 23, 14, 18);
+  ctx.fillRect(x - 11, y - 23 + armSwing, 5, 14);
+  ctx.fillRect(x + 6, y - 23 - armSwing, 5, 14);
 
-  ctx.fillStyle = "#e5b98b";
-  ctx.fillRect(x - 6, y - 34, 12, 11);
+  // Guantes
+  ctx.fillStyle = "#b2bac3";
+  ctx.fillRect(x - 11, y - 10 + armSwing, 5, 4);
+  ctx.fillRect(x + 6, y - 10 - armSwing, 5, 4);
 
-  ctx.fillStyle = "#493021";
-  ctx.fillRect(x - 6, y - 36, 12, 5);
+  // Armadura
+  ctx.fillStyle = "#315b9a";
+  ctx.fillRect(x - 7, y - 25, 14, 17);
 
   ctx.fillStyle = "#aeb8c4";
-  ctx.fillRect(x - 7, y - 23, 14, 4);
+  ctx.fillRect(x - 7, y - 24, 14, 5);
+
+  ctx.fillStyle = "#d5b66e";
+  ctx.fillRect(x - 2, y - 19, 4, 9);
+
+  // Cabeza
+  ctx.fillStyle = "#e5b98b";
+  ctx.fillRect(x - 6, y - 36, 12, 11);
+
+  // Cabello
+  ctx.fillStyle = "#493021";
+  ctx.fillRect(x - 6, y - 38, 12, 5);
+
+  // Espada
+  ctx.save();
+  ctx.translate(x + 9, y - 18 + armSwing);
+  ctx.rotate(walking ? Math.sin(cycle) * 0.15 : 0);
+
+  ctx.fillStyle = "#d7dce3";
+  ctx.fillRect(0, -12, 3, 13);
+
+  ctx.fillStyle = "#a47a3c";
+  ctx.fillRect(-2, 1, 7, 3);
+
+  ctx.fillStyle = "#604329";
+  ctx.fillRect(0, 4, 3, 6);
+
+  ctx.restore();
 }
 
 function drawDestination() {
@@ -130,7 +190,9 @@ function drawJoystick() {
   ctx.arc(
     baseX + joystick.dx * joystick.radius,
     baseY + joystick.dy * joystick.radius,
-    21, 0, Math.PI * 2
+    21,
+    0,
+    Math.PI * 2
   );
   ctx.fillStyle = "#c6b98c";
   ctx.fill();
@@ -193,7 +255,18 @@ function update(deltaTime) {
   const movement = getMovement();
   const length = Math.hypot(movement.x, movement.y);
 
-  if (length === 0) return;
+  player.moving = length > 0.01;
+
+  if (!player.moving) return;
+
+  const screenDX = movement.x - movement.y;
+  const screenDY = movement.x + movement.y;
+
+  if (Math.abs(screenDX) > Math.abs(screenDY)) {
+    player.facing = screenDX > 0 ? "right" : "left";
+  } else {
+    player.facing = screenDY > 0 ? "down" : "up";
+  }
 
   const factor = Math.min(1, length);
 
@@ -214,36 +287,26 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
+  // Terreno
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       const pos = worldToScreen(x, y);
       const color = (x + y) % 2 === 0 ? "#527747" : "#496d40";
+
       drawTile(pos.x, pos.y, color);
     }
   }
 
+  // Destino y personaje
   drawDestination();
 
   const playerPos = worldToScreen(player.x, player.y);
-  drawPlayer(playerPos.x, playerPos.y);
 
+  drawPlayer(playerPos.x, playerPos.y);
   drawJoystick();
 }
 
-function gameLoop(timestamp) {
-  const deltaTime = lastTime
-    ? Math.min((timestamp - lastTime) / 1000, 0.05)
-    : 0;
-
-  lastTime = timestamp;
-
-  update(deltaTime);
-  drawGame();
-
-  requestAnimationFrame(gameLoop);
-}
-
-// Clic izquierdo para caminar en PC
+// Controles de PC: clic izquierdo
 canvas.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse") {
     if (event.button !== 0) return;
@@ -263,7 +326,7 @@ canvas.addEventListener("pointerdown", (event) => {
     return;
   }
 
-  // Joystick táctil en Android
+  // Controles táctiles
   const baseX = 85;
   const baseY = window.innerHeight - 95;
 
@@ -275,6 +338,7 @@ canvas.addEventListener("pointerdown", (event) => {
   if (distance <= joystick.radius + 25 && !joystick.active) {
     joystick.active = true;
     joystick.pointerId = event.pointerId;
+
     player.targetX = null;
     player.targetY = null;
 
@@ -296,6 +360,20 @@ function releaseJoystick(event) {
 
 canvas.addEventListener("pointerup", releaseJoystick);
 canvas.addEventListener("pointercancel", releaseJoystick);
+
+function gameLoop(timestamp) {
+  const deltaTime = lastTime
+    ? Math.min((timestamp - lastTime) / 1000, 0.05)
+    : 0;
+
+  lastTime = timestamp;
+  animationTime += deltaTime;
+
+  update(deltaTime);
+  drawGame();
+
+  requestAnimationFrame(gameLoop);
+}
 
 window.addEventListener("resize", resizeCanvas);
 
