@@ -3,23 +3,58 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   const MAP_HEIGHT = 11;
 
   // =====================================
-  // TERRENO
+  // TERRENO Y PLAZA
   // =====================================
 
-  function drawTile(x, y, color) {
+  function drawTile(x, y, color, isPath) {
+    const pos = worldToScreen(x, y);
+
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 32, y + 16);
-    ctx.lineTo(x, y + 32);
-    ctx.lineTo(x - 32, y + 16);
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(pos.x + 32, pos.y + 16);
+    ctx.lineTo(pos.x, pos.y + 32);
+    ctx.lineTo(pos.x - 32, pos.y + 16);
     ctx.closePath();
 
     ctx.fillStyle = color;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(0,0,0,0.16)";
+    ctx.strokeStyle = isPath
+      ? "rgba(48,42,32,0.24)"
+      : "rgba(25,45,24,0.22)";
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    if (isPath) {
+      ctx.strokeStyle = "rgba(225,215,185,0.13)";
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y + 5);
+      ctx.lineTo(pos.x + 22, pos.y + 16);
+      ctx.lineTo(pos.x, pos.y + 27);
+      ctx.lineTo(pos.x - 22, pos.y + 16);
+      ctx.stroke();
+
+      // Pequeñas marcas de piedra
+      if ((x * 3 + y * 7) % 4 === 0) {
+        ctx.fillStyle = "rgba(65,59,48,0.18)";
+        ctx.fillRect(pos.x - 3, pos.y + 14, 6, 2);
+      }
+    } else {
+      // Hierba decorativa discreta
+      if ((x * 7 + y * 3) % 5 === 0) {
+        ctx.strokeStyle = "rgba(153,183,91,0.42)";
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+        ctx.moveTo(pos.x - 3, pos.y + 19);
+        ctx.lineTo(pos.x - 5, pos.y + 14);
+        ctx.moveTo(pos.x, pos.y + 19);
+        ctx.lineTo(pos.x + 1, pos.y + 13);
+        ctx.moveTo(pos.x + 3, pos.y + 19);
+        ctx.lineTo(pos.x + 6, pos.y + 15);
+        ctx.stroke();
+      }
+    }
   }
 
   function isStonePath(x, y) {
@@ -34,18 +69,18 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
 
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
-      const pos = worldToScreen(x, y);
+      const isPath = isStonePath(x, y);
 
-      const color = isStonePath(x, y)
-        ? ((x + y) % 2 === 0 ? "#99917b" : "#857e6b")
-        : ((x + y) % 2 === 0 ? "#527747" : "#496d40");
+      const color = isPath
+        ? ((x + y) % 2 === 0 ? "#a49a82" : "#8e856f")
+        : ((x + y) % 2 === 0 ? "#587d48" : "#4b7041");
 
-      drawTile(pos.x, pos.y, color);
+      drawTile(x, y, color, isPath);
     }
   }
 
   // =====================================
-  // UTILIDADES DE DIBUJO
+  // UTILIDADES
   // =====================================
 
   function polygon(points, color) {
@@ -61,8 +96,17 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     ctx.fill();
   }
 
+  function line(x1, y1, x2, y2, color, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
   // =====================================
-  // CASAS
+  // CASAS MEDIEVALES
   // =====================================
 
   function drawHouse(x, y, variant = 0) {
@@ -71,57 +115,124 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    ctx.fillStyle = "rgba(0,0,0,0.22)";
+    const roofLeft = variant === 1 ? "#91452f" : "#a34e36";
+    const roofRight = variant === 1 ? "#71372b" : "#783d2e";
+
+    // Sombra
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.beginPath();
-    ctx.ellipse(0, 2, 43, 17, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 3, 45, 18, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // Paredes laterales
     polygon([
       [0, -43], [34, -61], [34, -17], [0, 2]
-    ], "#8b7558");
+    ], "#806b51");
 
     polygon([
       [-34, -61], [0, -43], [0, 2], [-34, -17]
-    ], "#b39a72");
+    ], "#b49a72");
 
+    // Textura de paredes
+    for (let i = 0; i < 3; i++) {
+      line(
+        -30, -48 + i * 12,
+        -5, -35 + i * 12,
+        "rgba(86,64,43,0.3)"
+      );
+
+      line(
+        5, -34 + i * 12,
+        29, -47 + i * 12,
+        "rgba(54,43,32,0.28)"
+      );
+    }
+
+    // Madera estructural
+    line(-32, -18, -32, -57, "#60432e", 3);
+    line(-2, 0, -2, -42, "#60432e", 3);
+    line(31, -18, 31, -59, "#503a2b", 3);
+
+    // Puerta
+    ctx.fillStyle = "#513626";
+    ctx.fillRect(-25, -31, 14, 31);
+
+    ctx.fillStyle = "#755034";
+    ctx.fillRect(-23, -29, 10, 27);
+
+    ctx.fillStyle = "#d2a75d";
+    ctx.fillRect(-15, -16, 2, 3);
+
+    // Ventanas
+    ctx.fillStyle = "#44382d";
+    ctx.fillRect(-6, -37, 13, 13);
+
+    ctx.fillStyle = "#e0b96e";
+    ctx.fillRect(-4, -35, 9, 9);
+
+    ctx.fillStyle = "#49372b";
+    ctx.fillRect(13, -46, 11, 11);
+
+    ctx.fillStyle = "#e2b76a";
+    ctx.fillRect(15, -44, 7, 7);
+
+    // Cruces de las ventanas
+    line(-4, -30, 5, -30, "#674a30", 1);
+    line(0, -35, 0, -26, "#674a30", 1);
+
+    line(15, -40, 22, -40, "#674a30", 1);
+    line(18, -44, 18, -36, "#674a30", 1);
+
+    // Techos
     polygon([
       [0, -87], [39, -67], [34, -57], [0, -76]
-    ], "#713b2c");
+    ], roofRight);
 
     polygon([
       [-39, -67], [0, -87], [0, -76], [-34, -57]
-    ], "#a34e36");
+    ], roofLeft);
 
-    ctx.strokeStyle = "#542d25";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-39, -67);
-    ctx.lineTo(0, -87);
-    ctx.lineTo(39, -67);
-    ctx.stroke();
+    // Líneas de tejas
+    for (let i = 0; i < 3; i++) {
+      const offset = i * 9;
 
-    ctx.fillStyle = "#513626";
-    ctx.fillRect(-24, -29, 13, 29);
+      line(
+        -31 + offset,
+        -69 + offset * 0.5,
+        -2 + offset,
+        -83 + offset * 0.5,
+        "rgba(65,34,27,0.45)",
+        2
+      );
 
-    ctx.fillStyle = "#c49a52";
-    ctx.fillRect(-14, -16, 2, 2);
-
-    ctx.fillStyle = "#4b3930";
-    ctx.fillRect(-5, -36, 12, 12);
-
-    ctx.fillStyle = "#e4bd72";
-    ctx.fillRect(-3, -34, 8, 8);
-
-    ctx.fillStyle = "#49382d";
-    ctx.fillRect(13, -46, 10, 10);
-
-    ctx.fillStyle = "#d7ad65";
-    ctx.fillRect(15, -44, 6, 6);
-
-    if (variant === 1) {
-      ctx.fillStyle = "#8c4234";
-      ctx.fillRect(-24, -55, 9, 4);
+      line(
+        4 + offset,
+        -84 + offset * 0.5,
+        33 + offset,
+        -69 + offset * 0.5,
+        "rgba(55,29,23,0.4)",
+        2
+      );
     }
+
+    // Bordes del techo
+    line(-39, -67, 0, -87, "#542e25", 3);
+    line(0, -87, 39, -67, "#542e25", 3);
+
+    // Chimenea
+    ctx.fillStyle = "#694234";
+    ctx.fillRect(18, -91, 9, 22);
+
+    ctx.fillStyle = "#9a5b43";
+    ctx.fillRect(16, -94, 13, 5);
+
+    // Pequeña maceta
+    ctx.fillStyle = "#98513b";
+    ctx.fillRect(-36, -24, 7, 6);
+
+    ctx.fillStyle = "#467344";
+    ctx.fillRect(-35, -29, 2, 6);
+    ctx.fillRect(-31, -30, 3, 7);
 
     ctx.restore();
   }
@@ -136,14 +247,19 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillStyle = "rgba(0,0,0,0.23)";
     ctx.beginPath();
-    ctx.ellipse(0, 1, 20, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 2, 22, 9, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#62432d";
-    ctx.fillRect(-5, -35, 10, 35);
+    // Tronco
+    polygon([
+      [-5, -35], [5, -35], [5, 0], [-5, 0]
+    ], "#68452e");
 
+    line(-3, -30, -3, -5, "#966340", 2);
+
+    // Copa
     ctx.fillStyle = "#294d32";
     ctx.fillRect(-20, -60, 40, 27);
 
@@ -153,11 +269,19 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     ctx.fillStyle = "#56864a";
     ctx.fillRect(-9, -67, 18, 16);
 
+    ctx.fillStyle = "rgba(140,177,86,0.35)";
+    ctx.fillRect(-13, -65, 7, 6);
+    ctx.fillRect(5, -70, 6, 7);
+
+    ctx.fillStyle = "#203f2b";
+    ctx.fillRect(-17, -47, 7, 7);
+    ctx.fillRect(10, -54, 6, 8);
+
     ctx.restore();
   }
 
   // =====================================
-  // FUENTE
+  // FUENTE CENTRAL
   // =====================================
 
   function drawFountain(x, y) {
@@ -166,23 +290,48 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
+    // Sombra
+    ctx.fillStyle = "rgba(0,0,0,0.24)";
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 30, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Base exterior
     polygon([
-      [-25, -9], [0, -21], [25, -9], [0, 3]
+      [-28, -9], [0, -23], [28, -9], [0, 5]
     ], "#716c60");
 
+    // Borde de piedra
     polygon([
-      [-25, -15], [0, -27], [25, -15], [0, -3]
+      [-25, -15], [0, -28], [25, -15], [0, -2]
     ], "#b4aa91");
 
+    // Agua
     polygon([
-      [-17, -15], [0, -23], [17, -15], [0, -7]
-    ], "#4b9aab");
+      [-18, -15], [0, -24], [18, -15], [0, -6]
+    ], "#438fa4");
 
-    ctx.fillStyle = "#d0c4a2";
-    ctx.fillRect(-3, -36, 6, 17);
+    polygon([
+      [-12, -15], [0, -21], [12, -15], [0, -9]
+    ], "#67b6c1");
 
-    ctx.fillStyle = "#6eb6c0";
-    ctx.fillRect(-2, -39, 4, 5);
+    // Columna central
+    ctx.fillStyle = "#8d826d";
+    ctx.fillRect(-4, -38, 8, 19);
+
+    ctx.fillStyle = "#c9b995";
+    ctx.fillRect(-6, -40, 12, 4);
+
+    // Agua superior
+    ctx.fillStyle = "#6fc5d0";
+    ctx.fillRect(-3, -45, 6, 6);
+
+    ctx.fillStyle = "rgba(210,247,246,0.8)";
+    ctx.fillRect(-1, -48, 2, 4);
+
+    // Detalles de piedra
+    line(-23, -14, 0, -3, "#d2c6a7", 1);
+    line(0, -3, 23, -14, "#d2c6a7", 1);
 
     ctx.restore();
   }
@@ -244,6 +393,39 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   }
 
   // =====================================
+  // LETRERO DE VALORIA
+  // =====================================
+
+  function drawSign() {
+    const pos = worldToScreen(6, 1);
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(0, -29, 49, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#503725";
+    ctx.fillRect(-3, -44, 6, 26);
+
+    ctx.fillStyle = "#63432d";
+    ctx.fillRect(-47, -65, 94, 25);
+
+    ctx.strokeStyle = "#c2a16b";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-47, -65, 94, 25);
+
+    ctx.fillStyle = "#ead5a0";
+    ctx.font = "bold 16px Georgia";
+    ctx.textAlign = "center";
+    ctx.fillText("VALORIA", 0, -47);
+
+    ctx.restore();
+  }
+
+  // =====================================
   // OBJETOS CON PROFUNDIDAD
   // =====================================
 
@@ -256,11 +438,13 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     });
   }
 
+  // Casas
   addObject(2, 2, () => drawHouse(2, 2, 0));
   addObject(10, 2, () => drawHouse(10, 2, 1));
   addObject(2, 8, () => drawHouse(2, 8, 1));
   addObject(10, 8, () => drawHouse(10, 8, 0));
 
+  // Árboles
   addObject(0, 3, () => drawTree(0, 3));
   addObject(12, 3, () => drawTree(12, 3));
   addObject(0, 8, () => drawTree(0, 8));
@@ -268,27 +452,22 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   addObject(3, 1, () => drawTree(3, 1));
   addObject(9, 1, () => drawTree(9, 1));
 
+  // Fuente
   addObject(6, 4, () => drawFountain(6, 4));
 
+  // NPC
   addObject(4.5, 5.8, () => drawNPC(4.5, 5.8, "#796044"));
   addObject(8, 5.5, () => drawNPC(8, 5.5, "#536b85"));
 
+  // Salidas
   addObject(6, 0, () => drawExit(6, 0, "NORTE"));
   addObject(0, 5, () => drawExit(0, 5, "OESTE"));
   addObject(12, 5, () => drawExit(12, 5, "ESTE"));
 
-  // Letrero fijo
-  const sign = worldToScreen(6, 1);
+  // Letrero
+  addObject(6, 1, drawSign);
 
-  ctx.fillStyle = "#e1cf9a";
-  ctx.font = "bold 16px Georgia";
-  ctx.textAlign = "center";
-  ctx.fillText("VALORIA", sign.x, sign.y - 48);
-
-  // =====================================
-  // ORDENAR OBJETOS Y JUGADOR
-  // =====================================
-
+  // Jugador
   if (playerRender) {
     objects.push({
       depth: playerRender.x + playerRender.y,
@@ -296,6 +475,7 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     });
   }
 
+  // Orden de profundidad
   objects.sort((a, b) => a.depth - b.depth);
 
   for (const object of objects) {
