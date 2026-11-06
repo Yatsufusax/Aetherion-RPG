@@ -9,7 +9,6 @@ const MAP_HEIGHT = 11;
 const isTouchDevice =
   navigator.maxTouchPoints > 0 || "ontouchstart" in window;
 
-// Equipamiento inicial: el personaje todavía no consiguió nada.
 const player = {
   x: 6,
   y: 5,
@@ -89,6 +88,7 @@ function drawTile(x, y, color) {
   ctx.stroke();
 }
 
+// Personaje principal: cambia según la dirección.
 function drawPlayer(x, y) {
   const walking = player.moving;
   const cycle = animationTime * 10;
@@ -96,11 +96,9 @@ function drawPlayer(x, y) {
   const legSwing = walking ? Math.sin(cycle) * 2.5 : 0;
   const armSwing = walking ? Math.sin(cycle + Math.PI) * 2 : 0;
 
-  const idle = walking ? 0 : Math.sin(animationTime * 2) * 0.5;
-
   const bob = walking
     ? Math.abs(Math.sin(cycle)) * 1.2
-    : idle;
+    : Math.sin(animationTime * 2) * 0.5;
 
   y -= bob;
 
@@ -110,83 +108,186 @@ function drawPlayer(x, y) {
   ctx.ellipse(x, y + 5, 11, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Piernas: pantalón sencillo
-  ctx.fillStyle = "#514638";
-  ctx.fillRect(x - 5 - legSwing, y - 12, 5, 11);
-  ctx.fillRect(x + 1 + legSwing, y - 12, 5, 11);
-
-  // Botas básicas de cuero
-  ctx.fillStyle = "#493324";
-  ctx.fillRect(x - 6 - legSwing, y - 3, 6, 4);
-  ctx.fillRect(x + 1 + legSwing, y - 3, 6, 4);
-
-  // Brazos: ropa de tela sencilla
-  ctx.fillStyle = "#806044";
-  ctx.fillRect(x - 10, y - 24 + armSwing, 5, 14);
-  ctx.fillRect(x + 5, y - 24 - armSwing, 5, 14);
-
-  // Manos
-  ctx.fillStyle = "#d6a47d";
-  ctx.fillRect(x - 10, y - 11 + armSwing, 5, 4);
-  ctx.fillRect(x + 5, y - 11 - armSwing, 5, 4);
-
-  // Camisa inicial de tela
-  ctx.fillStyle = "#806044";
-  ctx.fillRect(x - 7, y - 26, 14, 16);
-
-  // Detalle de la camisa
-  ctx.fillStyle = "#654a35";
-  ctx.fillRect(x - 1, y - 24, 2, 10);
-
-  // Cabeza
-  ctx.fillStyle = "#d6a47d";
-  ctx.fillRect(x - 6, y - 37, 12, 11);
-
-  // Cabello
-  ctx.fillStyle = "#493021";
-  ctx.fillRect(x - 6, y - 39, 12, 5);
-  ctx.fillRect(x - 7, y - 36, 3, 5);
-
-  // Arma: solamente si el jugador realmente tiene una equipada.
-  if (player.equipment.weapon) {
-    drawWeapon(x, y, armSwing);
-  }
-
-  // Armadura: solamente si está equipada.
-  if (player.equipment.armor) {
-    drawArmor(x, y);
-  }
-
-  // Escudo: solamente si está equipado.
-  if (player.equipment.shield) {
-    drawShield(x, y, armSwing);
-  }
-}
-
-function drawWeapon(x, y, armSwing) {
   ctx.save();
-  ctx.translate(x + 9, y - 18 + armSwing);
+  ctx.translate(x, y);
 
-  ctx.fillStyle = "#d7dce3";
-  ctx.fillRect(0, -12, 3, 13);
-
-  ctx.fillStyle = "#a47a3c";
-  ctx.fillRect(-2, 1, 7, 3);
-
-  ctx.fillStyle = "#604329";
-  ctx.fillRect(0, 4, 3, 6);
+  if (player.facing === "down") {
+    drawFront(legSwing, armSwing);
+  } else if (player.facing === "up") {
+    drawBack(legSwing, armSwing);
+  } else if (player.facing === "left") {
+    ctx.scale(-1, 1);
+    drawSide(legSwing, armSwing);
+  } else {
+    drawSide(legSwing, armSwing);
+  }
 
   ctx.restore();
 }
 
-function drawArmor(x, y) {
-  ctx.fillStyle = "#aeb8c4";
-  ctx.fillRect(x - 7, y - 26, 14, 16);
+// Vista frontal
+function drawFront(legSwing, armSwing) {
+  // Piernas
+  ctx.fillStyle = "#514638";
+  ctx.fillRect(-5 - legSwing, -12, 5, 11);
+  ctx.fillRect(1 + legSwing, -12, 5, 11);
+
+  // Botas
+  ctx.fillStyle = "#493324";
+  ctx.fillRect(-6 - legSwing, -3, 6, 4);
+  ctx.fillRect(1 + legSwing, -3, 6, 4);
+
+  // Brazos
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(-10, -24 + armSwing, 5, 14);
+  ctx.fillRect(5, -24 - armSwing, 5, 14);
+
+  // Manos
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(-10, -11 + armSwing, 5, 4);
+  ctx.fillRect(5, -11 - armSwing, 5, 4);
+
+  // Camisa
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(-7, -26, 14, 16);
+
+  ctx.fillStyle = "#654a35";
+  ctx.fillRect(-1, -24, 2, 10);
+
+  // Cara
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(-6, -37, 12, 11);
+
+  // Cabello
+  ctx.fillStyle = "#493021";
+  ctx.fillRect(-6, -39, 12, 5);
+  ctx.fillRect(-7, -36, 3, 5);
+
+  // Ojos
+  ctx.fillStyle = "#30251e";
+  ctx.fillRect(-3, -32, 2, 2);
+  ctx.fillRect(2, -32, 2, 2);
+
+  drawEquippedItems(armSwing);
 }
 
-function drawShield(x, y, armSwing) {
-  ctx.fillStyle = "#8c653b";
-  ctx.fillRect(x - 14, y - 22 + armSwing, 5, 11);
+// Vista trasera
+function drawBack(legSwing, armSwing) {
+  // Piernas
+  ctx.fillStyle = "#514638";
+  ctx.fillRect(-5 - legSwing, -12, 5, 11);
+  ctx.fillRect(1 + legSwing, -12, 5, 11);
+
+  // Botas
+  ctx.fillStyle = "#493324";
+  ctx.fillRect(-6 - legSwing, -3, 6, 4);
+  ctx.fillRect(1 + legSwing, -3, 6, 4);
+
+  // Brazos
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(-10, -24 + armSwing, 5, 14);
+  ctx.fillRect(5, -24 - armSwing, 5, 14);
+
+  // Manos
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(-10, -11 + armSwing, 5, 4);
+  ctx.fillRect(5, -11 - armSwing, 5, 4);
+
+  // Camisa
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(-7, -26, 14, 16);
+
+  // Costura trasera
+  ctx.fillStyle = "#654a35";
+  ctx.fillRect(-1, -24, 2, 12);
+
+  // Cabeza
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(-6, -37, 12, 11);
+
+  // Cabello visto desde atrás
+  ctx.fillStyle = "#493021";
+  ctx.fillRect(-7, -39, 14, 8);
+  ctx.fillRect(-6, -32, 12, 4);
+
+  drawEquippedItems(armSwing);
+}
+
+// Vista lateral: mirando hacia la derecha.
+// Para mirar a la izquierda se invierte horizontalmente.
+function drawSide(legSwing, armSwing) {
+  // Piernas
+  ctx.fillStyle = "#514638";
+  ctx.fillRect(-3 - legSwing, -12, 5, 11);
+  ctx.fillRect(2 + legSwing, -12, 5, 11);
+
+  // Botas
+  ctx.fillStyle = "#493324";
+  ctx.fillRect(-3 - legSwing, -3, 7, 4);
+  ctx.fillRect(2 + legSwing, -3, 6, 4);
+
+  // Brazo trasero
+  ctx.fillStyle = "#654a35";
+  ctx.fillRect(-5, -23 - armSwing, 5, 13);
+
+  // Cuerpo
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(-4, -26, 11, 16);
+
+  // Brazo delantero
+  ctx.fillStyle = "#806044";
+  ctx.fillRect(3, -23 + armSwing, 5, 13);
+
+  // Mano
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(4, -11 + armSwing, 5, 4);
+
+  // Cabeza de perfil
+  ctx.fillStyle = "#d6a47d";
+  ctx.fillRect(-2, -37, 11, 11);
+
+  // Nariz
+  ctx.fillRect(8, -33, 3, 3);
+
+  // Cabello
+  ctx.fillStyle = "#493021";
+  ctx.fillRect(-3, -39, 12, 5);
+  ctx.fillRect(-3, -35, 4, 7);
+
+  // Ojo
+  ctx.fillStyle = "#30251e";
+  ctx.fillRect(6, -33, 2, 2);
+
+  drawEquippedItems(armSwing);
+}
+
+// Equipamiento visual: solo aparece si está equipado.
+function drawEquippedItems(armSwing) {
+  if (player.equipment.armor) {
+    ctx.fillStyle = "#aeb8c4";
+    ctx.fillRect(-7, -26, 14, 16);
+  }
+
+  if (player.equipment.shield) {
+    ctx.fillStyle = "#8c653b";
+    ctx.fillRect(-13, -22 + armSwing, 5, 11);
+  }
+
+  if (player.equipment.weapon) {
+    ctx.save();
+    ctx.translate(9, -18 + armSwing);
+
+    ctx.fillStyle = "#d7dce3";
+    ctx.fillRect(0, -12, 3, 13);
+
+    ctx.fillStyle = "#a47a3c";
+    ctx.fillRect(-2, 1, 7, 3);
+
+    ctx.fillStyle = "#604329";
+    ctx.fillRect(0, 4, 3, 6);
+
+    ctx.restore();
+  }
 }
 
 function drawDestination() {
@@ -328,7 +429,6 @@ function drawGame() {
     }
   }
 
-  // Destino y personaje
   drawDestination();
 
   const playerPos = worldToScreen(player.x, player.y);
