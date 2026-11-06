@@ -1,3 +1,4 @@
+
 import { drawValoria } from "./maps/valoria.js";
 
 const canvas = document.getElementById("gameCanvas");
@@ -63,9 +64,6 @@ const PLAYER_RADIUS_Y = 0.16;
 // COLISIONES DE VALORIA
 // ==========================================
 
-// Los radios representan el espacio físico ocupado.
-// No usamos toda la copa de los árboles como obstáculo.
-
 const obstacles = [
   // Casas
   { x: 2, y: 2, rx: 0.78, ry: 0.62 },
@@ -89,7 +87,9 @@ const obstacles = [
   { x: 8, y: 5.5, rx: 0.22, ry: 0.22 }
 ];
 
-// Comprueba si el jugador puede ocupar una posición.
+// ==========================================
+// DETECCIÓN DE COLISIONES
+// ==========================================
 
 function canMoveTo(x, y) {
   if (
@@ -118,6 +118,82 @@ function canMoveTo(x, y) {
   }
 
   return true;
+}
+
+// ==========================================
+// VISUALIZACIÓN TEMPORAL DE COLISIONES
+// ==========================================
+
+function drawWorldEllipse(centerX, centerY, radiusX, radiusY, color) {
+  ctx.beginPath();
+
+  const segments = 40;
+
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+
+    const worldX = centerX + Math.cos(angle) * radiusX;
+    const worldY = centerY + Math.sin(angle) * radiusY;
+
+    const screen = worldToScreen(worldX, worldY);
+
+    if (i === 0) {
+      ctx.moveTo(screen.x, screen.y);
+    } else {
+      ctx.lineTo(screen.x, screen.y);
+    }
+  }
+
+  ctx.closePath();
+
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  ctx.strokeStyle = color.replace("0.15", "0.95");
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function drawCollisionDebug() {
+  // Zonas de los obstáculos
+  for (const obstacle of obstacles) {
+    drawWorldEllipse(
+      obstacle.x,
+      obstacle.y,
+      obstacle.rx + PLAYER_RADIUS_X,
+      obstacle.ry + PLAYER_RADIUS_Y,
+      "rgba(255, 55, 55, 0.15)"
+    );
+  }
+
+  // Zona de colisión del BK
+  drawWorldEllipse(
+    player.x,
+    player.y,
+    PLAYER_RADIUS_X,
+    PLAYER_RADIUS_Y,
+    "rgba(50, 255, 100, 0.15)"
+  );
+
+  // Centro del BK
+  const playerScreen = worldToScreen(player.x, player.y);
+
+  ctx.beginPath();
+  ctx.arc(playerScreen.x, playerScreen.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = "#39ff65";
+  ctx.fill();
+
+  // Indicador de diagnóstico
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 12px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("MODO COLISIONES", 12, 22);
+
+  ctx.fillStyle = "#ff5555";
+  ctx.fillText("ROJO: obstáculos", 12, 40);
+
+  ctx.fillStyle = "#39ff65";
+  ctx.fillText("VERDE: jugador", 12, 58);
 }
 
 // ==========================================
@@ -525,26 +601,17 @@ function update(deltaTime) {
   const stepX = movement.x * factor * player.speed * deltaTime;
   const stepY = movement.y * factor * player.speed * deltaTime;
 
-  // Primero intentamos mover en X.
-  // Si hay obstáculo, bloqueamos solo ese eje.
-
   const nextX = player.x + stepX;
 
   if (canMoveTo(nextX, player.y)) {
     player.x = nextX;
   }
 
-  // Después intentamos mover en Y.
-  // Esto permite deslizarse alrededor de obstáculos.
-
   const nextY = player.y + stepY;
 
   if (canMoveTo(player.x, nextY)) {
     player.y = nextY;
   }
-
-  // Si se usa clic para caminar y no puede avanzar,
-  // cancelamos el destino para evitar caminar eternamente.
 
   if (!joystick.active && player.targetX !== null) {
     const remaining = Math.hypot(
@@ -553,11 +620,12 @@ function update(deltaTime) {
     );
 
     if (remaining > 0.06) {
-      const blockedX = Math.abs(stepX) > 0.0001 &&
-        Math.abs(player.x - (nextX)) < 0.0001 &&
+      const blockedX =
+        Math.abs(stepX) > 0.0001 &&
         !canMoveTo(nextX, player.y);
 
-      const blockedY = Math.abs(stepY) > 0.0001 &&
+      const blockedY =
+        Math.abs(stepY) > 0.0001 &&
         !canMoveTo(player.x, nextY);
 
       if (blockedX && blockedY) {
@@ -593,6 +661,9 @@ function drawGame() {
     y: player.y,
     draw: () => drawPlayer(playerPos.x, groundY)
   });
+
+  // Dibujamos las colisiones encima del escenario.
+  drawCollisionDebug();
 
   drawJoystick();
 }
