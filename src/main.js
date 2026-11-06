@@ -124,10 +124,9 @@ function drawPlayer(x, groundY) {
     ? Math.abs(Math.sin(cycle)) * 1.2
     : Math.sin(animationTime * 2) * 0.5;
 
-  // Movimiento visual del cuerpo
   const visualY = groundY - bob;
 
-  // Sombra directamente debajo de los pies
+  // Sombra
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
   ctx.ellipse(x, groundY + 2, 11, 4, 0, 0, Math.PI * 2);
@@ -137,7 +136,7 @@ function drawPlayer(x, groundY) {
     ? 1 + Math.floor(animationTime * 8) % 4
     : 0;
 
-  // Sprite real con detección automática de los pies
+  // Sprite real
   if (
     playerSprite &&
     playerSprite.draw(
@@ -323,7 +322,6 @@ function drawDestination() {
   if (player.targetX === null) return;
 
   const pos = worldToScreen(player.targetX, player.targetY);
-
   const groundY = pos.y + TILE_HEIGHT / 2;
 
   ctx.beginPath();
@@ -464,7 +462,7 @@ function update(deltaTime) {
 }
 
 // ==========================================
-// DIBUJAR VALORIA
+// DIBUJAR JUEGO CON PROFUNDIDAD
 // ==========================================
 
 function drawGame() {
@@ -478,22 +476,25 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  drawValoria(ctx, worldToScreen);
-
   drawDestination();
 
+  // Posición real del BK
   const playerPos = worldToScreen(player.x, player.y);
-
-  // Centro del rombo: punto de apoyo del personaje
   const groundY = playerPos.y + TILE_HEIGHT / 2;
 
-  drawPlayer(playerPos.x, groundY);
+  // El mapa decide cuándo dibujar el BK
+  // según la profundidad de cada objeto.
+  drawValoria(ctx, worldToScreen, {
+    x: player.x,
+    y: player.y,
+    draw: () => drawPlayer(playerPos.x, groundY)
+  });
 
   drawJoystick();
 }
 
 // ==========================================
-// CONTROLES DE PC Y ANDROID
+// CONTROLES
 // ==========================================
 
 canvas.addEventListener("pointerdown", (event) => {
