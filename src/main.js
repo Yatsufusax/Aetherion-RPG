@@ -9,6 +9,45 @@ const MAP_HEIGHT = 11;
 const isTouchDevice =
   navigator.maxTouchPoints > 0 || "ontouchstart" in window;
 
+// ==========================================
+// CARGADOR DEL SPRITE DEL BK
+// ==========================================
+
+let playerSprite = null;
+
+import("./player/sprite.js")
+  .then(({ PlayerSprite }) => {
+    const sprite = new PlayerSprite(
+      "./assets/characters/dark_knight.png",
+      64,
+      64
+    );
+
+    playerSprite = sprite;
+
+    console.log("Cargador del BK preparado.");
+
+    sprite.image.addEventListener("load", () => {
+      console.log("Sprite del BK cargado correctamente.");
+    });
+
+    sprite.image.addEventListener("error", () => {
+      console.warn(
+        "Sprite BK no encontrado. Se utilizará el personaje provisional."
+      );
+    });
+  })
+  .catch((error) => {
+    console.warn(
+      "No se pudo iniciar el cargador. Se utilizará el personaje provisional.",
+      error
+    );
+  });
+
+// ==========================================
+// JUGADOR
+// ==========================================
+
 const player = {
   x: 6,
   y: 5,
@@ -17,6 +56,7 @@ const player = {
   targetY: null,
   facing: "down",
   moving: false,
+
   equipment: {
     weapon: null,
     armor: null,
@@ -37,6 +77,10 @@ let offsetX = 0;
 let offsetY = 0;
 let lastTime = 0;
 let animationTime = 0;
+
+// ==========================================
+// PANTALLA
+// ==========================================
 
 function resizeCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -73,6 +117,10 @@ function screenToWorld(x, y) {
   };
 }
 
+// ==========================================
+// TERRENO
+// ==========================================
+
 function drawTile(x, y, color) {
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -88,7 +136,10 @@ function drawTile(x, y, color) {
   ctx.stroke();
 }
 
-// Personaje principal: cambia según la dirección.
+// ==========================================
+// PERSONAJE PRINCIPAL
+// ==========================================
+
 function drawPlayer(x, y) {
   const walking = player.moving;
   const cycle = animationTime * 10;
@@ -108,6 +159,28 @@ function drawPlayer(x, y) {
   ctx.ellipse(x, y + 5, 11, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Selección del cuadro de animación
+  const frame = walking
+    ? 1 + Math.floor(animationTime * 8) % 4
+    : 0;
+
+  // Intentar dibujar el sprite real
+  if (
+    playerSprite &&
+    playerSprite.draw(
+      ctx,
+      player.facing,
+      frame,
+      x,
+      y,
+      1
+    )
+  ) {
+    return;
+  }
+
+  // Si el PNG no está disponible,
+  // utilizar el personaje provisional.
   ctx.save();
   ctx.translate(x, y);
 
@@ -125,7 +198,10 @@ function drawPlayer(x, y) {
   ctx.restore();
 }
 
-// Vista frontal
+// ==========================================
+// VISTA FRONTAL
+// ==========================================
+
 function drawFront(legSwing, armSwing) {
   // Piernas
   ctx.fillStyle = "#514638";
@@ -171,7 +247,10 @@ function drawFront(legSwing, armSwing) {
   drawEquippedItems(armSwing);
 }
 
-// Vista trasera
+// ==========================================
+// VISTA TRASERA
+// ==========================================
+
 function drawBack(legSwing, armSwing) {
   // Piernas
   ctx.fillStyle = "#514638";
@@ -205,7 +284,7 @@ function drawBack(legSwing, armSwing) {
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-6, -37, 12, 11);
 
-  // Cabello visto desde atrás
+  // Cabello
   ctx.fillStyle = "#493021";
   ctx.fillRect(-7, -39, 14, 8);
   ctx.fillRect(-6, -32, 12, 4);
@@ -213,8 +292,10 @@ function drawBack(legSwing, armSwing) {
   drawEquippedItems(armSwing);
 }
 
-// Vista lateral: mirando hacia la derecha.
-// Para mirar a la izquierda se invierte horizontalmente.
+// ==========================================
+// VISTA LATERAL
+// ==========================================
+
 function drawSide(legSwing, armSwing) {
   // Piernas
   ctx.fillStyle = "#514638";
@@ -242,7 +323,7 @@ function drawSide(legSwing, armSwing) {
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(4, -11 + armSwing, 5, 4);
 
-  // Cabeza de perfil
+  // Cabeza
   ctx.fillStyle = "#d6a47d";
   ctx.fillRect(-2, -37, 11, 11);
 
@@ -261,7 +342,10 @@ function drawSide(legSwing, armSwing) {
   drawEquippedItems(armSwing);
 }
 
-// Equipamiento visual: solo aparece si está equipado.
+// ==========================================
+// EQUIPAMIENTO
+// ==========================================
+
 function drawEquippedItems(armSwing) {
   if (player.equipment.armor) {
     ctx.fillStyle = "#aeb8c4";
@@ -290,6 +374,10 @@ function drawEquippedItems(armSwing) {
   }
 }
 
+// ==========================================
+// DESTINO
+// ==========================================
+
 function drawDestination() {
   if (player.targetX === null) return;
 
@@ -301,6 +389,10 @@ function drawDestination() {
   ctx.lineWidth = 2;
   ctx.stroke();
 }
+
+// ==========================================
+// JOYSTICK
+// ==========================================
 
 function drawJoystick() {
   if (!isTouchDevice) return;
@@ -333,7 +425,9 @@ function drawJoystick() {
 }
 
 function updateJoystick(event) {
-  if (!joystick.active || event.pointerId !== joystick.pointerId) return;
+  if (!joystick.active || event.pointerId !== joystick.pointerId) {
+    return;
+  }
 
   const baseX = 85;
   const baseY = window.innerHeight - 95;
@@ -351,6 +445,10 @@ function updateJoystick(event) {
   joystick.dx = dx;
   joystick.dy = dy;
 }
+
+// ==========================================
+// MOVIMIENTO
+// ==========================================
 
 function getMovement() {
   if (joystick.active) {
@@ -409,6 +507,10 @@ function update(deltaTime) {
   player.y = Math.max(0, Math.min(MAP_HEIGHT - 1, player.y));
 }
 
+// ==========================================
+// DIBUJAR JUEGO
+// ==========================================
+
 function drawGame() {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -419,11 +521,13 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  // Terreno
+  // Terreno provisional
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       const pos = worldToScreen(x, y);
-      const color = (x + y) % 2 === 0 ? "#527747" : "#496d40";
+      const color = (x + y) % 2 === 0
+        ? "#527747"
+        : "#496d40";
 
       drawTile(pos.x, pos.y, color);
     }
@@ -437,12 +541,18 @@ function drawGame() {
   drawJoystick();
 }
 
-// Controles de PC: clic izquierdo
+// ==========================================
+// CONTROLES DE PC Y ANDROID
+// ==========================================
+
 canvas.addEventListener("pointerdown", (event) => {
   if (event.pointerType === "mouse") {
     if (event.button !== 0) return;
 
-    const destination = screenToWorld(event.clientX, event.clientY);
+    const destination = screenToWorld(
+      event.clientX,
+      event.clientY
+    );
 
     if (
       destination.x >= 0 &&
@@ -491,6 +601,10 @@ function releaseJoystick(event) {
 
 canvas.addEventListener("pointerup", releaseJoystick);
 canvas.addEventListener("pointercancel", releaseJoystick);
+
+// ==========================================
+// BUCLE PRINCIPAL
+// ==========================================
 
 function gameLoop(timestamp) {
   const deltaTime = lastTime
