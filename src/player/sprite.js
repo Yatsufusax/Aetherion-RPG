@@ -11,8 +11,12 @@ export class PlayerSprite {
     this.loaded = false;
     this.failed = false;
 
+    // Ajuste vertical de los pies
+    this.footOffset = 8;
+
     this.image.onload = () => {
       this.loaded = true;
+      console.log("Sprite del BK cargado correctamente.");
     };
 
     this.image.onerror = () => {
@@ -36,16 +40,23 @@ export class PlayerSprite {
     const row = rows[direction] ?? 0;
     const column = Math.max(0, Math.min(4, frame));
 
+    const drawWidth = this.frameWidth * scale;
+    const drawHeight = this.frameHeight * scale;
+
+    // Punto de apoyo corregido
+    const drawX = x - drawWidth / 2;
+    const drawY = y - drawHeight + this.footOffset * scale;
+
     ctx.drawImage(
       this.image,
       column * this.frameWidth,
       row * this.frameHeight,
       this.frameWidth,
       this.frameHeight,
-      x - (this.frameWidth * scale) / 2,
-      y - this.frameHeight * scale,
-      this.frameWidth * scale,
-      this.frameHeight * scale
+      drawX,
+      drawY,
+      drawWidth,
+      drawHeight
     );
 
     return true;
