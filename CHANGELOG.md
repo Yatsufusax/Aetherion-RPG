@@ -93,3 +93,26 @@ Arte de Valoria
 - Props colocados con colisión: 4 braseros, 6 antorchas, 6 barriles, 2 cajas, 5 arbustos y pilares de portales.
 - main.js: solo se suman las colisiones de PROP_OBSTACLES a la lista obstacles (import + 1 línea).
 - Brillo de fuego parpadeante en braseros y antorchas.
+
+Motor: cámara y zoom
+
+- main.js: la cámara sigue al jugador (CAMERA_FOLLOWS_PLAYER) con zoom entero automático (WORLD_ZOOM = null).
+- La lógica sigue en tiles de 64 × 32; el zoom se aplica solo al dibujar el mundo. La interfaz y el joystick no llevan zoom.
+- screenToWorld convierte el clic a espacio de arte. El resto de main.js, las colisiones y la profundidad no cambian.
+- CAMERA_FOLLOWS_PLAYER = false vuelve al mapa completo centrado.
+
+Ambiente
+
+- Suelo de Valoria rehecho como losas de piedra gris azulada a doble resolución (res: 2).
+- Sprites.draw soporta res (píxeles del PNG por píxel de arte).
+- Casas con revoque de arenisca cálida y piedra más fría.
+- Charcos de luz cálida en el suelo bajo braseros y antorchas; tinte general más suave.
+
+Flujo de inicio estilo MU
+
+- Nuevo flujo: título → servidor → login/registro → selección de personaje → creación → mundo (docs/FLOW.md).
+- Cuentas y personajes con guardado local detrás de una interfaz intercambiable (src/services/accounts.js).
+- Datos de clases en src/data/classes.js (Dark Knight disponible; Dark Wizard y Fairy Elf bloqueados).
+- Menú dentro del juego (botón ☰ o Esc): continuar, cambiar de personaje, cerrar sesión. Autoguardado de posición.
+- main.js: modos "menu" y "game", Valoria como fondo en los menús, nombre sobre el personaje y arranque de las escenas.
+- El rótulo "AETHERION RPG" del HTML se oculta (ahora es el logo de la pantalla de título).

@@ -24,9 +24,10 @@ Las anclas y tamaños se declaran en `src/maps/valoria_assets.js`.
 
 ## Terreno
 
-- `ground/valoria_ground.png`: **768 × 400 px**, todo el mapa de 13 × 11 tiles en una sola imagen con transparencia fuera del rombo y borde de tierra en los dos lados frontales.
-- Ancla: **(352, 0)** = vértice superior del tile (0, 0).
-- Tierra para los caminos, adoquín gris oscuro en la plaza con anillo, pasto oscuro con manchas secas.
+- `ground/valoria_ground_2x.png`: **1536 × 800 px a DOBLE resolución** (`res: 2`: 2 píxeles del PNG por píxel de arte). Todo el mapa de 13 × 11 tiles, transparente fuera del rombo, con borde de tierra en los lados frontales.
+- Ancla: **(704, 0)** en píxeles del PNG = vértice superior del tile (0, 0).
+- Losas de piedra gris azulada con biselado, grietas y musgo en la plaza y los caminos; anillo violeta oscuro alrededor de la fuente; pasto frío con manchas secas.
+- `res` está soportado por `Sprites.draw`: sirve para ir subiendo el detalle recurso por recurso.
 
 ## Árboles, fuente y estructuras
 

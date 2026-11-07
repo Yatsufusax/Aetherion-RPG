@@ -17,8 +17,9 @@ export const USE_ATMOSPHERE = true; // niebla, viñeta y tinte frío sobre la es
 const BASE = "./assets/maps/valoria/";
 
 export const SPRITES = {
-  // Terreno completo de Valoria (13 × 11 tiles). El ancla es el vértice superior del tile (0,0).
-  ground_valoria: { file: "ground/valoria_ground.png", size: [768, 400], anchor: [352, 0] },
+  // Terreno completo de Valoria (13 × 11 tiles) a DOBLE resolución (res: 2).
+  // El ancla (en píxeles del PNG) es el vértice superior del tile (0,0).
+  ground_valoria: { file: "ground/valoria_ground_2x.png", size: [1536, 800], anchor: [704, 0], res: 2 },
 
   // Casas clase S "Cabaña": 144 × 160 px, huella 1.5 × 1.25 tiles
   house_s_a_brown:    { file: "buildings/house_s_a_brown.png",    size: [144, 160], anchor: [72, 124] },
@@ -154,12 +155,17 @@ export const Sprites = {
     const def = SPRITES[id];
     const image = images[id];
 
+    // res: píxeles del PNG por píxel de arte (1 = normal, 2 = doble resolución)
+    const res = def.res || 1;
+
     ctx.save();
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(
       image,
-      Math.round(x - def.anchor[0]),
-      Math.round(y - def.anchor[1])
+      Math.round((x - def.anchor[0] / res) * res) / res,
+      Math.round((y - def.anchor[1] / res) * res) / res,
+      image.naturalWidth / res,
+      image.naturalHeight / res
     );
     ctx.restore();
 
@@ -207,6 +213,24 @@ export const Sprites = {
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+
+      // Charco de luz sobre el suelo (elipse achatada en perspectiva isométrica)
+      const gy = pos.y + 16;
+      const pr = r * 1.15;
+      const pool = ctx.createRadialGradient(cx, gy, 0, cx, gy, pr);
+      pool.addColorStop(0, `rgba(255, 150, 60, ${a * 0.55})`);
+      pool.addColorStop(0.5, `rgba(255, 110, 40, ${a * 0.18})`);
+      pool.addColorStop(1, "rgba(255, 100, 30, 0)");
+
+      ctx.save();
+      ctx.translate(cx, gy);
+      ctx.scale(1, 0.5);
+      ctx.translate(-cx, -gy);
+      ctx.fillStyle = pool;
+      ctx.beginPath();
+      ctx.arc(cx, gy, pr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     ctx.restore();
@@ -223,7 +247,7 @@ export const Sprites = {
     ctx.save();
 
     ctx.globalCompositeOperation = "multiply";
-    ctx.fillStyle = "rgb(214, 228, 255)";
+    ctx.fillStyle = "rgb(226, 236, 255)";
     ctx.fillRect(0, 0, width, height);
 
     ctx.globalCompositeOperation = "source-over";

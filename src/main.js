@@ -1,5 +1,6 @@
 import { drawValoria } from "./maps/valoria.js";
 import { PROP_OBSTACLES } from "./maps/valoria_assets.js";
+import { bootScenes } from "./scenes/sceneManager.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -135,6 +136,32 @@ const joystick = {
   radius: 48
 };
 
+// ==========================================
+// CÁMARA Y ZOOM
+// ==========================================
+// La lógica del mundo sigue en "espacio de arte" (tiles de 64 × 32).
+// El zoom entero se aplica al dibujar, así que el pixel art se ve nítido.
+const CAMERA_FOLLOWS_PLAYER = true; // false = mapa completo centrado (comportamiento anterior)
+const WORLD_ZOOM = null;            // null = automático (≈ 2 píxeles de pantalla por píxel de arte)
+
+let worldZoom = 1;
+
+// ==========================================
+// MODO: "menu" (pantallas de inicio) o "game"
+// ==========================================
+// En el menú se dibuja Valoria como fondo con una cámara que recorre la plaza.
+let mode = "menu";
+let activeCharacter = null;
+const backdropCamera = { x: 6.5, y: 4.5 };
+
+function getWorldZoom() {
+  if (!CAMERA_FOLLOWS_PLAYER) return 1;
+  if (WORLD_ZOOM) return WORLD_ZOOM;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  return Math.max(1, Math.round(2 / dpr));
+}
+
 let offsetX = 0;
 let offsetY = 0;
 let lastTime = 0;
@@ -155,6 +182,23 @@ function resizeCanvas() {
 }
 
 function calculateMapPosition() {
+  worldZoom = getWorldZoom();
+
+  if (CAMERA_FOLLOWS_PLAYER) {
+    // El punto de apoyo del jugador queda en el centro de la pantalla.
+    // Se redondea para que los sprites no tiemblen al moverse la cámara.
+    const viewWidth = window.innerWidth / worldZoom;
+    const viewHeight = window.innerHeight / worldZoom;
+
+    const target = mode === "game" ? player : backdropCamera;
+
+    offsetX = Math.round(viewWidth / 2 - (target.x - target.y) * TILE_WIDTH / 2);
+    offsetY = Math.round(
+      viewHeight / 2 - (target.x + target.y) * TILE_HEIGHT / 2 - TILE_HEIGHT / 2
+    );
+    return;
+  }
+
   const minX = -(MAP_HEIGHT - 1) * TILE_WIDTH / 2;
   const maxX = (MAP_WIDTH - 1) * TILE_WIDTH / 2;
   const maxY = (MAP_WIDTH + MAP_HEIGHT - 2) * TILE_HEIGHT / 2;
@@ -171,8 +215,9 @@ function worldToScreen(x, y) {
 }
 
 function screenToWorld(x, y) {
-  const sx = (x - offsetX) / (TILE_WIDTH / 2);
-  const sy = (y - offsetY) / (TILE_HEIGHT / 2);
+  // x, y llegan en píxeles de pantalla; se pasan a espacio de arte (zoom)
+  const sx = (x / worldZoom - offsetX) / (TILE_WIDTH / 2);
+  const sy = (y / worldZoom - offsetY) / (TILE_HEIGHT / 2);
 
   return {
     x: (sx + sy) / 2,
@@ -413,7 +458,7 @@ function drawDestination() {
 // ==========================================
 
 function drawJoystick() {
-  if (!isTouchDevice) return;
+  if (!isTouchDevice || mode !== "game") return;
 
   const baseX = 85;
   const baseY = window.innerHeight - 95;
@@ -632,16 +677,29 @@ function drawGame() {
   ctx.fillStyle = "#17251d";
   ctx.fillRect(0, 0, width, height);
 
-  drawDestination();
+  // Mundo con zoom (la interfaz y el joystick se dibujan sin zoom)
+  ctx.save();
+  ctx.scale(worldZoom, worldZoom);
+  ctx.imageSmoothingEnabled = false;
 
-  const playerPos = worldToScreen(player.x, player.y);
-  const groundY = playerPos.y + TILE_HEIGHT / 2;
+  if (mode === "game") {
+    drawDestination();
 
-  drawValoria(ctx, worldToScreen, {
-    x: player.x,
-    y: player.y,
-    draw: () => drawPlayer(playerPos.x, groundY)
-  });
+    const playerPos = worldToScreen(player.x, player.y);
+    const groundY = playerPos.y + TILE_HEIGHT / 2;
+
+    drawValoria(ctx, worldToScreen, {
+      x: player.x,
+      y: player.y,
+      draw: () => drawPlayer(playerPos.x, groundY)
+    });
+
+    ctx.restore();
+    drawNameTag(playerPos.x * worldZoom, (groundY - 54) * worldZoom);
+  } else {
+    drawValoria(ctx, worldToScreen, null);
+    ctx.restore();
+  }
 
   drawJoystick();
 }
@@ -651,6 +709,8 @@ function drawGame() {
 // ==========================================
 
 canvas.addEventListener("pointerdown", (event) => {
+  if (mode !== "game") return;
+
   if (event.pointerType === "mouse") {
     if (event.button !== 0) return;
 
@@ -710,6 +770,47 @@ canvas.addEventListener("pointercancel", releaseJoystick);
 // BUCLE PRINCIPAL
 // ==========================================
 
+function drawNameTag(x, y) {
+  if (!activeCharacter) return;
+
+  ctx.save();
+  ctx.font = "bold 13px Georgia, serif";
+  ctx.textAlign = "center";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+  ctx.strokeText(activeCharacter.name, x, y);
+  ctx.fillStyle = "#ffe28a";
+  ctx.fillText(activeCharacter.name, x, y);
+  ctx.restore();
+}
+
+// API que usan las pantallas (sceneManager)
+function enterGame(character) {
+  activeCharacter = character;
+
+  player.x = Number.isFinite(character.x) ? character.x : 6;
+  player.y = Number.isFinite(character.y) ? character.y : 5;
+  player.targetX = null;
+  player.targetY = null;
+  player.facing = "down";
+  player.moving = false;
+
+  mode = "game";
+}
+
+function leaveGame() {
+  mode = "menu";
+  activeCharacter = null;
+  player.targetX = null;
+  player.targetY = null;
+  player.moving = false;
+  joystick.active = false;
+}
+
+function getPlayerSnapshot() {
+  return mode === "game" ? { x: player.x, y: player.y } : null;
+}
+
 function gameLoop(timestamp) {
   const deltaTime = lastTime
     ? Math.min((timestamp - lastTime) / 1000, 0.05)
@@ -718,7 +819,14 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
   animationTime += deltaTime;
 
-  update(deltaTime);
+  if (mode === "game") {
+    update(deltaTime);
+  } else {
+    // Cámara lenta que recorre la plaza detrás de las pantallas de inicio
+    backdropCamera.x = 6.5 + Math.cos(animationTime * 0.12) * 2.4;
+    backdropCamera.y = 4.5 + Math.sin(animationTime * 0.09) * 1.8;
+  }
+
   drawGame();
 
   requestAnimationFrame(gameLoop);
@@ -728,3 +836,5 @@ window.addEventListener("resize", resizeCanvas);
 
 resizeCanvas();
 requestAnimationFrame(gameLoop);
+
+bootScenes({ enterGame, leaveGame, getPlayerSnapshot });
