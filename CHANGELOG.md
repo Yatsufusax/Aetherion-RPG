@@ -116,3 +116,14 @@ Flujo de inicio estilo MU
 - Menú dentro del juego (botón ☰ o Esc): continuar, cambiar de personaje, cerrar sesión. Autoguardado de posición.
 - main.js: modos "menu" y "game", Valoria como fondo en los menús, nombre sobre el personaje y arranque de las escenas.
 - El rótulo "AETHERION RPG" del HTML se oculta (ahora es el logo de la pantalla de título).
+
+Nueva interfaz de inicio (portada, login y personajes)
+
+- Las pantallas usan las ilustraciones del diseño (assets/ui/login_bg.png y select_bg.png) con los campos y botones reales colocados encima (src/ui/artStage.js).
+- Título, servidor y login se fusionan en una portada: Usuario, Contraseña, Ingresar, Registrarse (ventana), Opciones (ventana) y Salir. Ya no hay selección de servidor: se usa Valoria-01.
+- Selección y creación de personaje en una sola pantalla: 5 espacios, panel Crear Personaje (nombre y clase funcionales), ficha del personaje elegido, Volver / Eliminar / Crear o Entrar.
+- Clases: Guerrero (provisional, usa el sprite del BK), Mago, Arquera, Caballero Oscuro y Summoner. Solo Guerrero y Caballero Oscuro están disponibles.
+- Cabello, rostro, color y género femenino aparecen dibujados pero aún no funcionan.
+- En vertical se pide girar el dispositivo.
+- main.js: el mundo solo se dibuja jugando.
+- Eliminados: titleScene, serverScene, characterSelectScene, characterCreateScene y spritePreview.

@@ -1,6 +1,7 @@
 import { drawValoria } from "./maps/valoria.js";
 import { PROP_OBSTACLES } from "./maps/valoria_assets.js";
 import { bootScenes } from "./scenes/sceneManager.js";
+import { tintFilter } from "./data/appearance.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -251,18 +252,14 @@ function drawPlayer(x, groundY) {
     ? 1 + Math.floor(animationTime * 8) % 4
     : 0;
 
-  if (
-    playerSprite &&
-    playerSprite.draw(
-      ctx,
-      player.facing,
-      frame,
-      x,
-      visualY,
-      1
-    )
-  ) {
-    return;
+  if (playerSprite) {
+    // Color de apariencia elegido al crear el personaje (tinte del sprite)
+    ctx.save();
+    const tint = tintFilter(activeCharacter && activeCharacter.look);
+    if (tint !== "none") ctx.filter = tint;
+    const drawn = playerSprite.draw(ctx, player.facing, frame, x, visualY, 1);
+    ctx.restore();
+    if (drawn) return;
   }
 
   ctx.save();
@@ -827,7 +824,8 @@ function gameLoop(timestamp) {
     backdropCamera.y = 4.5 + Math.sin(animationTime * 0.09) * 1.8;
   }
 
-  drawGame();
+  // En los menús el fondo lo dibuja la pantalla de inicio; el mundo solo se pinta jugando.
+  if (mode === "game") drawGame();
 
   requestAnimationFrame(gameLoop);
 }

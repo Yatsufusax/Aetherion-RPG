@@ -1,24 +1,21 @@
 // ==========================================
 // ADMINISTRADOR DE ESCENAS
 // ==========================================
-// Flujo: título → servidor → login → personajes → creación → juego.
+// Flujo: portada con login → personajes (selección y creación) → juego.
 // Las pantallas de menú son HTML sobre el canvas (así funcionan teclado y
 // campos de texto en PC y Android). El juego en sí sigue siendo el canvas.
 
 import { Accounts } from "../services/accounts.js";
 import { h } from "../ui/dom.js";
-import { titleScene } from "./titleScene.js";
-import { serverScene } from "./serverScene.js";
 import { loginScene } from "./loginScene.js";
-import { characterSelectScene } from "./characterSelectScene.js";
-import { characterCreateScene } from "./characterCreateScene.js";
+import { characterScene } from "./characterScene.js";
 
+// "title" y "login" son la misma pantalla (portada con el formulario de acceso).
+// "characters" incluye selección y creación (un espacio vacío abre el panel de creación).
 const SCENES = {
-  title: titleScene,
-  server: serverScene,
+  title: loginScene,
   login: loginScene,
-  characters: characterSelectScene,
-  create: characterCreateScene
+  characters: characterScene
 };
 
 const AUTOSAVE_MS = 5000;

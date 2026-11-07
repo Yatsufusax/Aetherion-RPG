@@ -9,6 +9,7 @@
 // dispositivo). Sirve para separar perfiles. La seguridad real llega con el servidor.
 
 import { getClass } from "../data/classes.js";
+import { normalizeLook } from "../data/appearance.js";
 
 export const MAX_CHARACTERS = 5;
 
@@ -151,7 +152,7 @@ class LocalBackend {
     return this._account(readDb()).characters.map((c) => ({ ...c }));
   }
 
-  async createCharacter({ name, classId }) {
+  async createCharacter({ name, classId, look }) {
     const error = validateNickname(name);
     if (error) throw new AccountError(error);
 
@@ -175,6 +176,7 @@ class LocalBackend {
       id: `c${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`,
       name,
       classId: cls.id,
+      look: normalizeLook(look),
       level: 1,
       exp: 0,
       map: cls.startMap,
