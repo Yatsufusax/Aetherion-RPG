@@ -1,3 +1,12 @@
+import {
+  Sprites,
+  HOUSE_SPRITE_BY_SLOT,
+  TREE_SPRITE_BY_SLOT,
+  EXIT_SPRITE_BY_LABEL,
+  NPC_SPRITE_BY_SLOT,
+  PROPS
+} from "./valoria_assets.js";
+
 export function drawValoria(ctx, worldToScreen, playerRender = null) {
   const MAP_WIDTH = 13;
   const MAP_HEIGHT = 11;
@@ -67,15 +76,21 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
     return centralPlaza || verticalRoad || horizontalRoad;
   }
 
-  for (let y = 0; y < MAP_HEIGHT; y++) {
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      const isPath = isStonePath(x, y);
+  // Pixel Art: terreno pre-renderizado de todo el mapa. Si aún no cargó,
+  // se usa el dibujo por tiles anterior como respaldo.
+  const groundOrigin = worldToScreen(0, 0);
 
-      const color = isPath
-        ? ((x + y) % 2 === 0 ? "#a49a82" : "#8e856f")
-        : ((x + y) % 2 === 0 ? "#587d48" : "#4b7041");
+  if (!Sprites.drawGround(ctx, groundOrigin.x, groundOrigin.y)) {
+    for (let y = 0; y < MAP_HEIGHT; y++) {
+      for (let x = 0; x < MAP_WIDTH; x++) {
+        const isPath = isStonePath(x, y);
 
-      drawTile(x, y, color, isPath);
+        const color = isPath
+          ? ((x + y) % 2 === 0 ? "#a49a82" : "#8e856f")
+          : ((x + y) % 2 === 0 ? "#587d48" : "#4b7041");
+
+        drawTile(x, y, color, isPath);
+      }
     }
   }
 
@@ -111,6 +126,11 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
 
   function drawHouse(x, y, variant = 0) {
     const pos = worldToScreen(x, y);
+
+    // Pixel Art: el sprite se ancla al centro del tile (vértice superior + 16 px).
+    // Si no está disponible, se usa el dibujo vectorial de abajo como respaldo.
+    const spriteId = HOUSE_SPRITE_BY_SLOT[`${x},${y}`];
+    if (spriteId && Sprites.draw(ctx, spriteId, pos.x, pos.y + 16)) return;
 
     ctx.save();
     ctx.translate(pos.x, pos.y);
@@ -244,6 +264,10 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   function drawTree(x, y) {
     const pos = worldToScreen(x, y);
 
+    // Pixel Art (ancla = centro del tile); respaldo vectorial si no carga
+    const treeId = TREE_SPRITE_BY_SLOT[`${x},${y}`];
+    if (treeId && Sprites.draw(ctx, treeId, pos.x, pos.y + 16)) return;
+
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
@@ -286,6 +310,8 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
 
   function drawFountain(x, y) {
     const pos = worldToScreen(x, y);
+
+    if (Sprites.draw(ctx, "fountain_main", pos.x, pos.y + 16)) return;
 
     ctx.save();
     ctx.translate(pos.x, pos.y);
@@ -343,6 +369,17 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   function drawNPC(x, y, color) {
     const pos = worldToScreen(x, y);
 
+    // Pixel Art: mismo punto de apoyo que el jugador (centro del tile) y sombra equivalente.
+    const npcId = NPC_SPRITE_BY_SLOT[`${x},${y}`];
+    if (npcId && Sprites.isReady(npcId)) {
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y + 16 + 2, 11, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (Sprites.draw(ctx, npcId, pos.x, pos.y + 16)) return;
+    }
+
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
@@ -374,6 +411,19 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   function drawExit(x, y, label) {
     const pos = worldToScreen(x, y);
 
+    const gateId = EXIT_SPRITE_BY_LABEL[label];
+    if (gateId && Sprites.draw(ctx, gateId, pos.x, pos.y + 16)) {
+      ctx.save();
+      ctx.font = "bold 10px Arial";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.fillText(label, pos.x + 1, pos.y - 55);
+      ctx.fillStyle = "#e1cd96";
+      ctx.fillText(label, pos.x, pos.y - 56);
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
@@ -398,6 +448,8 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
 
   function drawSign() {
     const pos = worldToScreen(6, 1);
+
+    if (Sprites.draw(ctx, "sign_valoria", pos.x, pos.y + 16)) return;
 
     ctx.save();
     ctx.translate(pos.x, pos.y);
@@ -467,6 +519,16 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   // Letrero
   addObject(6, 1, drawSign);
 
+  // Props decorativos (braseros, antorchas, barriles, cajas, arbustos)
+  function drawProp(prop) {
+    const pos = worldToScreen(prop.x, prop.y);
+    Sprites.draw(ctx, prop.sprite, pos.x, pos.y + 16);
+  }
+
+  for (const prop of PROPS) {
+    addObject(prop.x, prop.y, () => drawProp(prop));
+  }
+
   // Jugador
   if (playerRender) {
     objects.push({
@@ -481,4 +543,8 @@ export function drawValoria(ctx, worldToScreen, playerRender = null) {
   for (const object of objects) {
     object.draw();
   }
+
+  // Atmósfera: tinte frío, niebla y viñeta (se dibuja sobre toda la escena, bajo la interfaz)
+  Sprites.drawAtmosphere(ctx);
+  Sprites.drawGlows(ctx, worldToScreen);
 }

@@ -1,4 +1,5 @@
 import { drawValoria } from "./maps/valoria.js";
+import { PROP_OBSTACLES } from "./maps/valoria_assets.js";
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -83,7 +84,10 @@ const obstacles = [
 
   // NPC
   { x: 4.5, y: 5.8, rx: 0.22, ry: 0.22 },
-  { x: 8, y: 5.5, rx: 0.22, ry: 0.22 }
+  { x: 8, y: 5.5, rx: 0.22, ry: 0.22 },
+
+  // Props y pilares de portales (definidos en src/maps/valoria_assets.js)
+  ...PROP_OBSTACLES
 ];
 
 // ==========================================

@@ -78,3 +78,18 @@ Removed
 Funcionalidades eliminadas.
 
 Aetherion RPG — Un nuevo mundo, con el espíritu de los MMORPG clásicos.
+
+Arte de Valoria
+
+- Nuevo cargador de sprites del mapa: src/maps/valoria_assets.js.
+- Primeras 4 casas medievales en Pixel Art (assets/maps/valoria/buildings/), 144 × 160 px, ancla al centro del tile.
+- valoria.js: drawHouse usa los sprites y conserva el dibujo vectorial como respaldo.
+- Posiciones, colisiones, cámara, profundidad, main.js y el sprite del BK sin cambios.
+- Terreno pixel art de todo el mapa (assets/maps/valoria/ground/), con tierra, plaza de adoquín y pasto oscuro.
+- Árboles, fuente, letrero VALORIA y portales de salida en Pixel Art.
+- Atmósfera de escena (tinte frío, niebla y viñeta) con interruptor USE_ATMOSPHERE.
+- Props listos sin colocar: brasero, antorcha, barril, caja, cerca y arbusto.
+- NPC Herrero y Mercader en Pixel Art, con el mismo punto de apoyo que el BK.
+- Props colocados con colisión: 4 braseros, 6 antorchas, 6 barriles, 2 cajas, 5 arbustos y pilares de portales.
+- main.js: solo se suman las colisiones de PROP_OBSTACLES a la lista obstacles (import + 1 línea).
+- Brillo de fuego parpadeante en braseros y antorchas.
